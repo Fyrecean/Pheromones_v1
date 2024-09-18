@@ -1,5 +1,7 @@
 {
     "compilerOptions": {
+        "types": ["@webgpu/types"],
+        "lib": ["es2020", "DOM"],
         "outDir": "public",
         "sourceMap": true,
         "noImplicitAny": true,

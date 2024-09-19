@@ -1,2 +1,1 @@
-import { HELLO } from "./test";
-console.log(HELLO);
+console.log("Hello World");

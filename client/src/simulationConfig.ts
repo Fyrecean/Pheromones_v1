@@ -2,6 +2,7 @@ export interface ISimulationParameters {
     agentCount: number
     width: number,
     height: number,
+    turnJitter: number,
 }
 
 export function getAgentsArray(parameters: ISimulationParameters): number[] {

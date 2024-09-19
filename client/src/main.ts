@@ -2,6 +2,8 @@ import { RenderPass } from "./renderPass";
 import { getAgentsArray, ISimulationParameters } from "./simulationConfig";
 import { SimulationPass } from "./simulationPass";
 
+const NUMBER_OF_PASSES = 2;
+
 async function go(): Promise<void> {
     const canvas = document.querySelector('canvas') as HTMLCanvasElement;
     const adapter = await navigator.gpu.requestAdapter();
@@ -22,6 +24,42 @@ async function go(): Promise<void> {
     perfDisplay.style.margin = '.5em';
     perfDisplayContainer.appendChild(perfDisplay);
     canvas.parentNode.appendChild(perfDisplayContainer);
+    let simulationDurationSum = 0;
+    let renderDurationSum = 0;
+    let timerSamples = 0;
+
+    const sparePerfTimeBuffers: GPUBuffer[] = [];
+    let querySet: GPUQuerySet | undefined = undefined;
+    let perfResolveBuffer: GPUBuffer | undefined = undefined;
+    let simulationPerfTimeStampWrites: GPUComputePassTimestampWrites | undefined = undefined;
+    let renderPerfTimeStampWrites: GPURenderPassTimestampWrites | undefined = undefined;
+    if (hasTimestampQuery) {
+        perfDisplay.textContent = `\
+avg simulation duration: — µs
+avg render duration:  — µs
+spare perf buffers:    —`;
+        
+
+        querySet = device.createQuerySet({
+            type: "timestamp",
+            count: 2 * NUMBER_OF_PASSES,
+        });
+        perfResolveBuffer = device.createBuffer({
+            label: "perfResolve",
+            size: 4 * BigInt64Array.BYTES_PER_ELEMENT * NUMBER_OF_PASSES,
+            usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC,
+        });
+        simulationPerfTimeStampWrites = {
+            querySet,
+            beginningOfPassWriteIndex: 0,
+            endOfPassWriteIndex: 1,
+          };
+          renderPerfTimeStampWrites = {
+            querySet,
+            beginningOfPassWriteIndex: 2,
+            endOfPassWriteIndex: 3,
+          };
+    }
 
     const context = canvas.getContext('webgpu') as unknown as GPUCanvasContext;
     const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
@@ -32,9 +70,10 @@ async function go(): Promise<void> {
     });
 
     const simulationParameters: ISimulationParameters = {
-        agentCount: 1,
+        agentCount: 1_000,
         height: canvas.height,
         width: canvas.width,
+        turnJitter: .5,
     }
 
     const pheromoneTexture = device.createTexture({
@@ -46,6 +85,7 @@ async function go(): Promise<void> {
     });
 
     const agentsBuffer = device.createBuffer({
+        label: "agents",
         size: 16 * simulationParameters.agentCount,
         usage: GPUBufferUsage.STORAGE,
         mappedAtCreation: true,
@@ -60,12 +100,62 @@ async function go(): Promise<void> {
     const frame = () => {
         const commandEncoder = device.createCommandEncoder();
         
-        simulationPass.addPass(commandEncoder);
+        simulationPass.addPass(commandEncoder, simulationPerfTimeStampWrites);
 
         const canvasTextureView = context.getCurrentTexture().createView();
-        renderPass.addPass(commandEncoder, canvasTextureView);
+        renderPass.addPass(commandEncoder, canvasTextureView, renderPerfTimeStampWrites);
+
+        let resultBuffer: GPUBuffer | undefined = undefined;
+        if (hasTimestampQuery) {
+            resultBuffer = sparePerfTimeBuffers.pop() || 
+                device.createBuffer({
+                    size: 4 * BigInt64Array.BYTES_PER_ELEMENT * NUMBER_OF_PASSES,
+                    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+                });
+            commandEncoder.resolveQuerySet(querySet, 0, 2 * NUMBER_OF_PASSES, perfResolveBuffer, 0);
+            commandEncoder.copyBufferToBuffer(
+                perfResolveBuffer,
+                0,
+                resultBuffer,
+                0,
+                resultBuffer.size
+            );
+        }
 
         device.queue.submit([commandEncoder.finish()]);
+
+        if (hasTimestampQuery) {
+            resultBuffer.mapAsync(GPUMapMode.READ).then(() => {
+                const times = new BigInt64Array(resultBuffer.getMappedRange());
+                const simulationDuration = Number(times[1] - times[0]);
+                const renderDuration = Number(times[3] - times[2]);
+                if (simulationDuration > 0 && renderDuration > 0) {
+                    simulationDurationSum += simulationDuration;
+                    renderDurationSum += renderDuration;
+                    timerSamples++;
+                }
+                resultBuffer.unmap();
+                sparePerfTimeBuffers.push(resultBuffer);
+
+                const kNumTimerSamplesPerUpdate = 100;
+                if (timerSamples >= kNumTimerSamplesPerUpdate) {
+                    const avgSimulationMicroseconds = Math.round(
+                        simulationDurationSum / timerSamples / 1000
+                    );
+                    const avgRenderMicroseconds = Math.round(
+                        renderDurationSum / timerSamples / 1000
+                    );
+                    perfDisplay.textContent = `\
+avg simulation duration: ${avgSimulationMicroseconds}µs
+avg render duration:  ${avgRenderMicroseconds}µs
+spare perf buffers:    ${sparePerfTimeBuffers.length}`;
+                    simulationDurationSum = 0;
+                    renderDurationSum = 0;
+                    timerSamples = 0;
+
+                }
+            });
+        }
         requestAnimationFrame(frame);
     };
     requestAnimationFrame(frame);

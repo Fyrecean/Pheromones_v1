@@ -7,6 +7,7 @@ export class SimulationPass {
     pheromoneTexture: GPUTexture;
     agentsBuffer: GPUBuffer;
 
+    workgroups: number;
     bindGroup: GPUBindGroup;
     uniformBuffer: GPUBuffer;
     pipeline: GPUComputePipeline;
@@ -60,7 +61,7 @@ export class SimulationPass {
             agent.w = -agent.w;
         }
 
-        let randomDirChange = .1 * vec2(Random(uniforms.time + u32(agent.x)) - .5, Random(uniforms.time + u32(agent.y)) - .5);
+        let randomDirChange = ${simulationParameters.turnJitter} * vec2(Random(uniforms.time + u32(agent.x)) - .5, Random(uniforms.time + u32(agent.y)) - .5);
         let velocity = normalize(agent.zw + randomDirChange);
 
         agent.z = velocity.x;
@@ -74,6 +75,7 @@ export class SimulationPass {
         this.device = device;
         this.pheromoneTexture = pheromoneTexture;
         this.agentsBuffer = agentsBuffer;
+        this.workgroups = Math.ceil(simulationParameters.agentCount / WORKGROUP_SIZE);
 
         this.uniformBuffer = device.createBuffer({
             size: 4,
@@ -139,7 +141,7 @@ export class SimulationPass {
         });
     }
 
-    addPass(commandEncoder: GPUCommandEncoder): void {
+    addPass(commandEncoder: GPUCommandEncoder, timestampWrites?: GPURenderPassTimestampWrites): void {
         const uniformData = new Uint32Array([new Date().getMilliseconds()]);
 
         this.device.queue.writeBuffer(
@@ -148,12 +150,16 @@ export class SimulationPass {
             uniformData,
             0,
             uniformData.length,
-        )
+        );
 
-        const simulatePass = commandEncoder.beginComputePass();
+        const passDescriptor = {
+            timestampWrites
+        }
+
+        const simulatePass = commandEncoder.beginComputePass(passDescriptor);
         simulatePass.setPipeline(this.pipeline);
         simulatePass.setBindGroup(0, this.bindGroup);
-        simulatePass.dispatchWorkgroups(1);
+        simulatePass.dispatchWorkgroups(this.workgroups);
         simulatePass.end();
     }
 }

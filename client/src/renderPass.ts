@@ -111,8 +111,8 @@ fn fragment_main(fragData: VertexOut) -> @location(0) vec4f
         });
     }
 
-    addPass(commandEncoder: GPUCommandEncoder, targetView: GPUTextureView): void {
-        const renderPassDescriptor: GPURenderPassDescriptor  = {
+    addPass(commandEncoder: GPUCommandEncoder, targetView: GPUTextureView, timestampWrites?: GPURenderPassTimestampWrites): void {
+        const renderPassDescriptor: GPURenderPassDescriptor = {
             colorAttachments: [
                 {
                     view: targetView,
@@ -121,6 +121,7 @@ fn fragment_main(fragData: VertexOut) -> @location(0) vec4f
                     storeOp: 'store',
                 },
             ] as GPURenderPassColorAttachment[],
+            timestampWrites
         };
 
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);

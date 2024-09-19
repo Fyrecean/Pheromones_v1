@@ -12,7 +12,7 @@ export class SimulationPass {
     uniformBuffer: GPUBuffer;
     pipeline: GPUComputePipeline;
 
-    constructor(device: GPUDevice, simulationParameters: ISimulationParameters, pheromoneTexture: GPUTexture, agentsBuffer: GPUBuffer) {
+    constructor(device: GPUDevice, simulationParameters: ISimulationParameters, textureFormat: GPUTextureFormat, agentsBuffer: GPUBuffer) {
         const shaderCode = `
         // Hash function from H. Schechter & R. Bridson, goo.gl/RXiKaH
         fn Hash(p: u32) -> u32
@@ -38,7 +38,7 @@ export class SimulationPass {
 
         @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 
-        @group(0) @binding(1) var textureOut: texture_storage_2d<${pheromoneTexture.format}, write>;
+        @group(0) @binding(1) var textureOut: texture_storage_2d<${textureFormat}, write>;
         @group(0) @binding(2) var<storage, read_write> agents: array<vec4f, ${simulationParameters.agentCount}>;
 
         @compute @workgroup_size(${WORKGROUP_SIZE})
@@ -73,7 +73,6 @@ export class SimulationPass {
         }`;
 
         this.device = device;
-        this.pheromoneTexture = pheromoneTexture;
         this.agentsBuffer = agentsBuffer;
         this.workgroups = Math.ceil(simulationParameters.agentCount / WORKGROUP_SIZE);
 
@@ -96,7 +95,7 @@ export class SimulationPass {
                     binding: 1,
                     visibility: GPUShaderStage.COMPUTE,
                     storageTexture: {
-                        format: pheromoneTexture.format,
+                        format: textureFormat,
                         access: "write-only",
                     },
                 },
@@ -108,25 +107,6 @@ export class SimulationPass {
                     },
                 },
             ] as GPUBindGroupLayoutEntry[]
-        });
-
-        this.bindGroup = device.createBindGroup({
-            label: "Simulation Bind Group",
-            layout: computeBindGroupLayout,
-            entries: [
-                {
-                    binding: 0,
-                    resource: { buffer: this.uniformBuffer },
-                },
-                {
-                    binding: 1,
-                    resource: pheromoneTexture.createView(),
-                },
-                {
-                    binding: 2,
-                    resource:{ buffer: agentsBuffer }, 
-                }
-            ] as GPUBindGroupEntry[]
         });
 
         this.pipeline = device.createComputePipeline({
@@ -141,8 +121,8 @@ export class SimulationPass {
         });
     }
 
-    addPass(commandEncoder: GPUCommandEncoder, timestampWrites?: GPURenderPassTimestampWrites): void {
-        const uniformData = new Uint32Array([new Date().getMilliseconds()]);
+    addPass(commandEncoder: GPUCommandEncoder, pheromoneTexture: GPUTexture, timestampWrites?: GPURenderPassTimestampWrites): void {
+        const uniformData = new Uint32Array([window.performance.now() * 10]);
 
         this.device.queue.writeBuffer(
             this.uniformBuffer,
@@ -154,7 +134,26 @@ export class SimulationPass {
 
         const passDescriptor = {
             timestampWrites
-        }
+        };
+
+        this.bindGroup = this.device.createBindGroup({
+            label: "Simulation Bind Group",
+            layout: this.pipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: { buffer: this.uniformBuffer },
+                },
+                {
+                    binding: 1,
+                    resource: pheromoneTexture.createView(),
+                },
+                {
+                    binding: 2,
+                    resource:{ buffer: this.agentsBuffer }, 
+                }
+            ] as GPUBindGroupEntry[]
+        });
 
         const simulatePass = commandEncoder.beginComputePass(passDescriptor);
         simulatePass.setPipeline(this.pipeline);

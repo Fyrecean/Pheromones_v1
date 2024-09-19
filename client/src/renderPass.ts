@@ -1,11 +1,12 @@
 
 
 export class RenderPass {
+    device: GPUDevice;
     bindGroup: GPUBindGroup;
     pipeline: GPURenderPipeline;
     sampler: GPUSampler;
 
-    constructor(device: GPUDevice, pheromoneTexture: GPUTexture) {
+    constructor(device: GPUDevice, textureFormat: GPUTextureFormat) {
         const shaderCode = `
 @group(0) @binding(0) var textureIn: texture_2d<f32>;
 @group(0) @binding(1) var samplerIn: sampler;
@@ -46,7 +47,7 @@ fn fragment_main(fragData: VertexOut) -> @location(0) vec4f
 {
     return vec4(textureSample(textureIn, samplerIn, fragData.uv).xyz, 1);
 }`;
-
+        this.device = device;
         this.sampler = device.createSampler({
             minFilter: "linear",
             magFilter: "linear",
@@ -58,7 +59,7 @@ fn fragment_main(fragData: VertexOut) -> @location(0) vec4f
                     binding: 0,
                     visibility: GPUShaderStage.FRAGMENT,
                     texture: {
-                        format: pheromoneTexture.format,
+                        format: textureFormat,
                         access: "read-only",
                         
                     }
@@ -94,24 +95,9 @@ fn fragment_main(fragData: VertexOut) -> @location(0) vec4f
                 topology: 'triangle-list',
             }
         });
-
-        this.bindGroup = device.createBindGroup({
-            label: "Render Bind Group",
-            layout: renderBindGroupLayout,
-            entries: [
-                {
-                    binding: 0,
-                    resource: pheromoneTexture.createView(),
-                },
-                {
-                    binding: 1,
-                    resource: this.sampler,
-                }
-            ],
-        });
     }
 
-    addPass(commandEncoder: GPUCommandEncoder, targetView: GPUTextureView, timestampWrites?: GPURenderPassTimestampWrites): void {
+    addPass(commandEncoder: GPUCommandEncoder, pheromoneTexture: GPUTexture, targetView: GPUTextureView, timestampWrites?: GPURenderPassTimestampWrites): void {
         const renderPassDescriptor: GPURenderPassDescriptor = {
             colorAttachments: [
                 {
@@ -123,6 +109,22 @@ fn fragment_main(fragData: VertexOut) -> @location(0) vec4f
             ] as GPURenderPassColorAttachment[],
             timestampWrites
         };
+
+        // TODO - is recreating the bind group with a texture swap faster than copying texture data back and forth?
+        this.bindGroup = this.device.createBindGroup({
+            label: "Render Bind Group",
+            layout: this.pipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: pheromoneTexture.createView(),
+                },
+                {
+                    binding: 1,
+                    resource: this.sampler,
+                }
+            ],
+        });
 
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setPipeline(this.pipeline);

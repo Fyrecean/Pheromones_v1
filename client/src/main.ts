@@ -1,6 +1,7 @@
 import { RenderPass } from "./renderPass";
 import { getAgentsArray, ISimulationParameters } from "./simulationConfig";
 import { SimulationPass } from "./simulationPass";
+import { TexturePass } from "./textureComputePass";
 
 const NUMBER_OF_PASSES = 2;
 
@@ -70,19 +71,28 @@ spare perf buffers:    —`;
     });
 
     const simulationParameters: ISimulationParameters = {
-        agentCount: 1_000,
+        agentCount: 1000,
         height: canvas.height,
         width: canvas.width,
         turnJitter: .5,
     }
 
-    const pheromoneTexture = device.createTexture({
-        size: [canvas.width, canvas.height],
-        format:  'rgba8unorm',
-        usage: 
-            GPUTextureUsage.TEXTURE_BINDING |
-            GPUTextureUsage.STORAGE_BINDING
-    });
+    const pheromoneTextures = [
+        device.createTexture({
+            size: [canvas.width, canvas.height],
+            format:  'rgba8unorm',
+            usage: 
+                GPUTextureUsage.TEXTURE_BINDING |
+                GPUTextureUsage.STORAGE_BINDING
+        }),
+        device.createTexture({
+            size: [canvas.width, canvas.height],
+            format:  'rgba8unorm',
+            usage: 
+                GPUTextureUsage.TEXTURE_BINDING |
+                GPUTextureUsage.STORAGE_BINDING
+        }),
+    ];
 
     const agentsBuffer = device.createBuffer({
         label: "agents",
@@ -93,17 +103,23 @@ spare perf buffers:    —`;
     new Float32Array(agentsBuffer.getMappedRange()).set(getAgentsArray(simulationParameters));
     agentsBuffer.unmap();
 
-    const simulationPass = new SimulationPass(device, simulationParameters, pheromoneTexture, agentsBuffer);
+    const texturePass = new TexturePass(device, simulationParameters, pheromoneTextures[0].format)
 
-    const renderPass = new RenderPass(device, pheromoneTexture);
+    const simulationPass = new SimulationPass(device, simulationParameters, pheromoneTextures[0].format, agentsBuffer);
 
+    const renderPass = new RenderPass(device, pheromoneTextures[0].format);
+
+    let pheromoneIndex = 0;
     const frame = () => {
         const commandEncoder = device.createCommandEncoder();
         
-        simulationPass.addPass(commandEncoder, simulationPerfTimeStampWrites);
+        texturePass.addPass(commandEncoder, pheromoneTextures[(pheromoneIndex + 1) % 2], pheromoneTextures[pheromoneIndex])
+
+        simulationPass.addPass(commandEncoder, pheromoneTextures[pheromoneIndex], simulationPerfTimeStampWrites);
 
         const canvasTextureView = context.getCurrentTexture().createView();
-        renderPass.addPass(commandEncoder, canvasTextureView, renderPerfTimeStampWrites);
+        renderPass.addPass(commandEncoder, pheromoneTextures[pheromoneIndex], canvasTextureView, renderPerfTimeStampWrites);
+        pheromoneIndex = (pheromoneIndex + 1) % 2;
 
         let resultBuffer: GPUBuffer | undefined = undefined;
         if (hasTimestampQuery) {

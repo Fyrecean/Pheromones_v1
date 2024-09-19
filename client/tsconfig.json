@@ -1,0 +1,10 @@
+{
+    "compilerOptions": {
+        "outDir": "public",
+        "sourceMap": true,
+        "noImplicitAny": true,
+        "module": "ES2020",
+        "target": "ES5",
+        "skipLibCheck": true,
+    }
+}

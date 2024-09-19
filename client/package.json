@@ -1,0 +1,14 @@
+{
+  "scripts": {
+    "build": "webpack --config webpack.config.js",
+    "dev": "webpack --config webpack.config.js --watch"
+  },
+  "private": true,
+  "dependencies": {
+    "webpack": "^5.94.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "devDependencies": {
+    "ts-loader": "^9.5.1"
+  }
+}

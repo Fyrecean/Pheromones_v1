@@ -33,7 +33,8 @@ export class SimulationPass {
         }
 
         struct Uniforms {
-            time: u32
+            time: u32,
+            
         }
 
         @group(0) @binding(0) var<uniform> uniforms: Uniforms;
@@ -73,7 +74,8 @@ export class SimulationPass {
         if (agent.y >= ${simulationParameters.height} || agent.y < 0) {
             agent.w = -agent.w;
         }
-        let randomDirChange = ${simulationParameters.turnJitter} * vec2(Random(uniforms.time + u32(agent.x)) - .5, Random(uniforms.time + u32(agent.y)) - .5);
+
+        let randomDirChange = ${simulationParameters.turnJitter} * vec2(Random(uniforms.time + global_id.x) - .5, Random(uniforms.time + global_id.x + ${simulationParameters.height}) - .5);
         var velocity = normalize(agent.zw + randomDirChange);
 
         // Take pheromone samples

@@ -6,13 +6,13 @@ import { TexturePass } from "./textureComputePass";
 const NUMBER_OF_PASSES = 2;
 
 const simulationParameters: ISimulationParameters = {
-    agentCount: 100000,
+    agentCount: 1_000_000,
     height: 0,
     width: 0,
-    turnJitter: .6,
-    steerFactor: 0.3,
+    turnJitter: .4,
+    steerFactor: 0.2,
     sampleDistance: 10,
-    passiveAttenuation: .002,
+    passiveAttenuation: .001,
 }
 
 async function go(): Promise<void> {

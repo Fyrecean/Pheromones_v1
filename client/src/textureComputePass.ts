@@ -12,6 +12,8 @@ export class TexturePass {
     uniformBuffer: GPUBuffer;
     pipeline: GPUComputePipeline;
 
+    blurKernel: number[][];
+
     constructor(device: GPUDevice, simulationParameters: ISimulationParameters, pheromoneTextureFormat: GPUTextureFormat) {
         // TODO - Remove Uniform?
         const shaderCode = `
@@ -32,9 +34,9 @@ export class TexturePass {
             let pixel = global_id.xy;
 
             // Define Gaussian kernel (3x3)
-            let ortho = .07;
-            let diag = .005;
-            let kernel: array<array<f32, 3>, 3> = array<array<f32, 3>, 3>(
+            let ortho = .05;
+            let diag = .01;
+            let kernel = array<array<f32, 3>, 3>(
                 array<f32, 3>(diag, ortho, diag),
                 array<f32, 3>(ortho,  .7,  ortho),
                 array<f32, 3>(diag, ortho, diag)

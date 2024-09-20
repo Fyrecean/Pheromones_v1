@@ -5,6 +5,16 @@ import { TexturePass } from "./textureComputePass";
 
 const NUMBER_OF_PASSES = 2;
 
+const simulationParameters: ISimulationParameters = {
+    agentCount: 100000,
+    height: 0,
+    width: 0,
+    turnJitter: .6,
+    steerFactor: 0.3,
+    sampleDistance: 10,
+    passiveAttenuation: .002,
+}
+
 async function go(): Promise<void> {
     const canvas = document.querySelector('canvas') as HTMLCanvasElement;
     const adapter = await navigator.gpu.requestAdapter();
@@ -62,6 +72,8 @@ spare perf buffers:    —`;
           };
     }
 
+    simulationParameters.width = canvas.width;
+    simulationParameters.height = canvas.height;
     const context = canvas.getContext('webgpu') as unknown as GPUCanvasContext;
     const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
     context.configure({
@@ -69,13 +81,6 @@ spare perf buffers:    —`;
         format: presentationFormat,
         alphaMode: 'premultiplied'
     });
-
-    const simulationParameters: ISimulationParameters = {
-        agentCount: 1000,
-        height: canvas.height,
-        width: canvas.width,
-        turnJitter: .5,
-    }
 
     const pheromoneTextures = [
         device.createTexture({
@@ -112,14 +117,16 @@ spare perf buffers:    —`;
     let pheromoneIndex = 0;
     const frame = () => {
         const commandEncoder = device.createCommandEncoder();
+        const textureInIndex = pheromoneIndex;
+        const textureOutIndex = (pheromoneIndex + 1) % 2
         
-        texturePass.addPass(commandEncoder, pheromoneTextures[(pheromoneIndex + 1) % 2], pheromoneTextures[pheromoneIndex])
+        texturePass.addPass(commandEncoder, pheromoneTextures[textureInIndex], pheromoneTextures[textureOutIndex])
 
-        simulationPass.addPass(commandEncoder, pheromoneTextures[pheromoneIndex], simulationPerfTimeStampWrites);
+        simulationPass.addPass(commandEncoder, pheromoneTextures[textureInIndex], pheromoneTextures[textureOutIndex], simulationPerfTimeStampWrites);
 
         const canvasTextureView = context.getCurrentTexture().createView();
         renderPass.addPass(commandEncoder, pheromoneTextures[pheromoneIndex], canvasTextureView, renderPerfTimeStampWrites);
-        pheromoneIndex = (pheromoneIndex + 1) % 2;
+        pheromoneIndex = textureOutIndex;
 
         let resultBuffer: GPUBuffer | undefined = undefined;
         if (hasTimestampQuery) {

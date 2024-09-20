@@ -32,15 +32,15 @@ export class TexturePass {
             let pixel = global_id.xy;
 
             // Define Gaussian kernel (3x3)
-            let ortho = .09;
-            let diag = .01;
+            let ortho = .07;
+            let diag = .005;
             let kernel: array<array<f32, 3>, 3> = array<array<f32, 3>, 3>(
                 array<f32, 3>(diag, ortho, diag),
-                array<f32, 3>(ortho,  .6,  ortho),
+                array<f32, 3>(ortho,  .7,  ortho),
                 array<f32, 3>(diag, ortho, diag)
             );
 
-            var colorSum = 0.0;
+            var colorSum = vec3(0.);
 
             // Loop through neighboring pixels (3x3 kernel)
             for (var i: i32 = -1; i <= 1; i = i + 1) {
@@ -49,15 +49,15 @@ export class TexturePass {
 
                     // Ensure we don't sample out of bounds
                     if (samplePixel.x < ${simulationParameters.width} && samplePixel.y < ${simulationParameters.height}) {
-                        let sampleColor = textureLoad(textureIn, samplePixel).x; // Load neighboring pixel color
+                        let sampleColor = textureLoad(textureIn, samplePixel).xyz; // Load neighboring pixel color
                         colorSum += sampleColor * kernel[i + 1][j + 1]; // Apply Gaussian kernel
                     }
                 }
             }
 
-            colorSum = max(0., colorSum - .002);
+            colorSum = max(vec3(0.), colorSum - vec3(${simulationParameters.passiveAttenuation}));
 
-            textureStore(textureOut, pixel, vec4(vec3(colorSum), 1.0)); // Store blurred color
+            textureStore(textureOut, pixel, vec4(colorSum, 1.0)); // Store blurred color
         }
 
             `;

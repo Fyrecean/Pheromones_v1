@@ -40,6 +40,19 @@ export class SimulationPass {
 
         @group(0) @binding(1) var textureOut: texture_storage_2d<${textureFormat}, write>;
         @group(0) @binding(2) var<storage, read_write> agents: array<vec4f, ${simulationParameters.agentCount}>;
+        @group(0) @binding(3) var textureIn: texture_storage_2d<${textureFormat}, read>;
+
+        const leftSampleMatrix =  mat2x2(0.866025, 0.5, -0.5, 0.866025);
+        const rightSampleMatrix = mat2x2(0.866025, -0.5, 0.5, 0.866025);
+        fn samplePheromone(position: vec2<f32>, direction: vec2<f32>, steps: u32) -> vec3<f32> {
+            let sampleStart = position + direction * 2;
+            var sum = vec3(0.);
+            let fSteps = f32(steps);
+            for (var i = 0.; i < fSteps; i += 1.) {
+                sum += textureLoad(textureIn, vec2<i32>(round(sampleStart + i * direction))).xyz;
+            }
+            return sum;
+        }
 
         @compute @workgroup_size(${WORKGROUP_SIZE})
         fn simulate(@builtin(global_invocation_id) global_id: vec3<u32>) {
@@ -60,15 +73,36 @@ export class SimulationPass {
         if (agent.y >= ${simulationParameters.height} || agent.y < 0) {
             agent.w = -agent.w;
         }
-
         let randomDirChange = ${simulationParameters.turnJitter} * vec2(Random(uniforms.time + u32(agent.x)) - .5, Random(uniforms.time + u32(agent.y)) - .5);
-        let velocity = normalize(agent.zw + randomDirChange);
+        var velocity = normalize(agent.zw + randomDirChange);
 
+        // Take pheromone samples
+        let rightSampleDir = rightSampleMatrix * velocity;
+        let rightSamplePixel = vec2<i32>(round(agent.xy + 3 * rightSampleDir));
+        
+        let forwardSamplePixel = vec2<i32>(round(agent.xy + 3 * velocity));
+
+        
+        let leftSampleDir = leftSampleMatrix * velocity;
+
+        let rightSample = samplePheromone(agent.xy, rightSampleDir, ${simulationParameters.sampleDistance}).x;
+        let forwardSample = samplePheromone(agent.xy, velocity, ${simulationParameters.sampleDistance}).x;
+        let leftSample = samplePheromone(agent.xy, leftSampleDir, ${simulationParameters.sampleDistance}).x;
+        
+        if (forwardSample < rightSample || forwardSample < leftSample) {
+            if (rightSample > leftSample) {
+                velocity += ${simulationParameters.steerFactor} * rightSampleDir;
+            } else {
+                velocity += ${simulationParameters.steerFactor} * leftSampleDir;
+             }
+            velocity = normalize(velocity);
+        }
+
+        let pixel = vec2<i32>(round(agent.xy));
+        textureStore(textureOut, pixel, vec4(1., 0., 0., 1.));
+        
         agent.z = velocity.x;
         agent.w = velocity.y;
-
-        let pixel = vec2<u32>(agent.xy);
-        textureStore(textureOut, pixel, vec4(1.));
         agents[index] = agent;
         }`;
 
@@ -106,6 +140,14 @@ export class SimulationPass {
                       type: "storage",
                     },
                 },
+                {
+                    binding: 3,
+                    visibility: GPUShaderStage.COMPUTE,
+                    storageTexture: {
+                        format: textureFormat,
+                        access: "read-only",
+                    },
+                },
             ] as GPUBindGroupLayoutEntry[]
         });
 
@@ -121,7 +163,7 @@ export class SimulationPass {
         });
     }
 
-    addPass(commandEncoder: GPUCommandEncoder, pheromoneTexture: GPUTexture, timestampWrites?: GPURenderPassTimestampWrites): void {
+    addPass(commandEncoder: GPUCommandEncoder, textureIn: GPUTexture, textureOut: GPUTexture, timestampWrites?: GPURenderPassTimestampWrites): void {
         const uniformData = new Uint32Array([window.performance.now() * 10]);
 
         this.device.queue.writeBuffer(
@@ -146,12 +188,16 @@ export class SimulationPass {
                 },
                 {
                     binding: 1,
-                    resource: pheromoneTexture.createView(),
+                    resource: textureOut.createView(),
                 },
                 {
                     binding: 2,
                     resource:{ buffer: this.agentsBuffer }, 
-                }
+                },
+                {
+                    binding: 3,
+                    resource: textureIn.createView(),
+                },
             ] as GPUBindGroupEntry[]
         });
 

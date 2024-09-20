@@ -3,6 +3,9 @@ export interface ISimulationParameters {
     width: number,
     height: number,
     turnJitter: number,
+    steerFactor: number,
+    sampleDistance: number,
+    passiveAttenuation: number,
 }
 
 export function getAgentsArray(parameters: ISimulationParameters): number[] {

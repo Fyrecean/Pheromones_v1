@@ -6,6 +6,7 @@ export class SimulationPass {
     device: GPUDevice;
     pheromoneTexture: GPUTexture;
     agentsBuffer: GPUBuffer;
+    simulationParameters: ISimulationParameters;
 
     workgroups: number;
     bindGroup: GPUBindGroup;
@@ -34,7 +35,8 @@ export class SimulationPass {
 
         struct Uniforms {
             time: u32,
-            
+            turnJitter: f32,
+            steerFactor: f32,
         }
 
         @group(0) @binding(0) var<uniform> uniforms: Uniforms;
@@ -75,7 +77,7 @@ export class SimulationPass {
             agent.w = -agent.w;
         }
 
-        let randomDirChange = ${simulationParameters.turnJitter} * vec2(Random(uniforms.time + global_id.x) - .5, Random(uniforms.time + global_id.x + ${simulationParameters.height}) - .5);
+        let randomDirChange = uniforms.turnJitter * vec2(Random(uniforms.time + global_id.x) - .5, Random(uniforms.time + global_id.x + ${simulationParameters.height}) - .5);
         var velocity = normalize(agent.zw + randomDirChange);
 
         // Take pheromone samples
@@ -93,9 +95,9 @@ export class SimulationPass {
         
         if (forwardSample < rightSample || forwardSample < leftSample) {
             if (rightSample > leftSample) {
-                velocity += ${simulationParameters.steerFactor} * rightSampleDir;
+                velocity += uniforms.steerFactor * rightSampleDir;
             } else {
-                velocity += ${simulationParameters.steerFactor} * leftSampleDir;
+                velocity += uniforms.steerFactor * leftSampleDir;
              }
             velocity = normalize(velocity);
         }
@@ -111,9 +113,10 @@ export class SimulationPass {
         this.device = device;
         this.agentsBuffer = agentsBuffer;
         this.workgroups = Math.ceil(simulationParameters.agentCount / WORKGROUP_SIZE);
+        this.simulationParameters = simulationParameters;
 
         this.uniformBuffer = device.createBuffer({
-            size: 4,
+            size: 12,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         });
 
@@ -166,14 +169,25 @@ export class SimulationPass {
     }
 
     addPass(commandEncoder: GPUCommandEncoder, textureIn: GPUTexture, textureOut: GPUTexture, timestampWrites?: GPURenderPassTimestampWrites): void {
-        const uniformData = new Uint32Array([window.performance.now() * 10]);
+        const uniformInts = new Uint32Array([window.performance.now() * 10]);
 
         this.device.queue.writeBuffer(
             this.uniformBuffer,
             0,
-            uniformData,
+            uniformInts,
             0,
-            uniformData.length,
+            uniformInts.length,
+        );
+        const uniformFloats = new Float32Array([
+            this.simulationParameters.turnJitter,
+            this.simulationParameters.steerFactor
+        ])
+        this.device.queue.writeBuffer(
+            this.uniformBuffer,
+            uniformInts.byteLength,
+            uniformFloats,
+            0,
+            uniformFloats.length,
         );
 
         const passDescriptor = {

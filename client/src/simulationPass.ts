@@ -36,8 +36,10 @@ export class SimulationPass {
         struct Uniforms {
             time: u32,
             sampleDistance: u32,
+            wrap: u32,
             turnJitter: f32,
             steerFactor: f32,
+            acceleration: f32,
         }
 
         @group(0) @binding(0) var<uniform> uniforms: Uniforms;
@@ -53,7 +55,20 @@ export class SimulationPass {
             var sum = vec3(0.);
             let fSteps = f32(steps);
             for (var i = 0.; i < fSteps; i += 1.) {
-                sum += textureLoad(textureIn, vec2<i32>(round(sampleStart + i * direction))).xyz;
+                var samplePixel = vec2<u32>(round(sampleStart + i * direction));
+                if (uniforms.wrap == 1) {
+                    if (samplePixel.x < 0) {
+                        samplePixel.x += ${simulationParameters.width};
+                    } else if (samplePixel.x >= ${simulationParameters.width}) {
+                        samplePixel.x -= ${simulationParameters.width}; 
+                    }
+                    if (samplePixel.y < 0) {
+                        samplePixel.y += ${simulationParameters.height};
+                    } else if (samplePixel.y >= ${simulationParameters.height}) {
+                        samplePixel.y -= ${simulationParameters.height}; 
+                    }
+                }
+                sum += textureLoad(textureIn, samplePixel).xyz;
             }
             return sum;
         }
@@ -71,13 +86,25 @@ export class SimulationPass {
         agent.x += agent.z;
         agent.y += agent.w;
 
-        if (agent.x >= ${simulationParameters.width} || agent.x < 0) {
-            agent.z = -agent.z;
+        if (uniforms.wrap == 1) {
+            if (agent.x < 0.) {
+                agent.x = ${simulationParameters.width};
+            } else if (agent.x >= ${simulationParameters.width}) {
+                agent.x = 0.; 
+            }
+            if (agent.y < 0.) {
+                agent.y = ${simulationParameters.height};
+            } else if (agent.y >= ${simulationParameters.height}) {
+                agent.y = 0.; 
+            }
+        } else {
+            if (agent.x >= ${simulationParameters.width} || agent.x < 0) {
+                agent.z = -agent.z;
+            }
+            if (agent.y >= ${simulationParameters.height} || agent.y < 0) {
+                agent.w = -agent.w;
+            }
         }
-        if (agent.y >= ${simulationParameters.height} || agent.y < 0) {
-            agent.w = -agent.w;
-        }
-
         let randomDirChange = uniforms.turnJitter * vec2(Random(uniforms.time + global_id.x) - .5, Random(uniforms.time + global_id.x + ${simulationParameters.height}) - .5);
         var velocity = normalize(agent.zw + randomDirChange);
 
@@ -94,14 +121,21 @@ export class SimulationPass {
         let forwardSample = samplePheromone(agent.xy, velocity, uniforms.sampleDistance).x;
         let leftSample = samplePheromone(agent.xy, leftSampleDir, uniforms.sampleDistance).x;
         
+        var maxSample = 0.;
         if (forwardSample < rightSample || forwardSample < leftSample) {
             if (rightSample > leftSample) {
                 velocity += uniforms.steerFactor * rightSampleDir;
+                maxSample = rightSample;
             } else {
                 velocity += uniforms.steerFactor * leftSampleDir;
-             }
+                maxSample = leftSample; 
+            }
             velocity = normalize(velocity);
+        } else {
+            maxSample = forwardSample;
         }
+
+        velocity *= 1 + (uniforms.acceleration * maxSample / f32(uniforms.sampleDistance));
 
         let pixel = vec2<i32>(round(agent.xy));
         let color = vec3(0.39, 0.82, 0.06);
@@ -165,7 +199,7 @@ export class SimulationPass {
         });
 
         this.uniformBuffer = device.createBuffer({
-            size: 16,
+            size: 24,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         });
     }
@@ -174,6 +208,7 @@ export class SimulationPass {
         const uniformInts = new Uint32Array([
             window.performance.now() * 10,
             this.simulationParameters.sampleDistance,
+            this.simulationParameters.wrap,
         ]);
 
         this.device.queue.writeBuffer(
@@ -185,7 +220,8 @@ export class SimulationPass {
         );
         const uniformFloats = new Float32Array([
             this.simulationParameters.turnJitter,
-            this.simulationParameters.steerFactor
+            this.simulationParameters.steerFactor,
+            this.simulationParameters.acceleration,
         ])
         this.device.queue.writeBuffer(
             this.uniformBuffer,

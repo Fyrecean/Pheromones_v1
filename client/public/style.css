@@ -32,4 +32,5 @@ canvas {
 button {
     width: min-content;
     text-wrap: nowrap;
+    margin-left: 5px;
 }

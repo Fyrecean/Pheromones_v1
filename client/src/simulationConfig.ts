@@ -34,33 +34,33 @@ document.addEventListener("DOMContentLoaded", () => {
     showButton.addEventListener("click", () => {
         if (showConfig) {
             showConfig = false;
-            showButton.innerText = "Show Config";
+            showButton.innerText = "Hide Config";
             configTable.hidden = false;
         } else {
             showConfig = true;
-            showButton.innerText = "Hide Config";
+            showButton.innerText = "Show Config";
             configTable.hidden = true;
         }
     });
     addSlider("Jitter", "turnJitter", .75, 0, 1.5, .01,
         "How much do ants randomly change direction"
     );
-    addSlider("Steering", "steerFactor", 0.2, 0, 1, .01, 
+    addSlider("Steering", "steerFactor", 0.15, 0, 1, .01, 
         "How much do ants steer towards detected pheromones"
     );
-    addSlider("Acceleration", "acceleration", 3, 0, 4, .1,
+    addSlider("Acceleration", "acceleration", 3, 0, 8, .1,
         "How much do ants speed up when they detect pheromones in front of them"
     );  
     addSlider("Detection Distance", "sampleDistance", 20, 1, 75, 1,
         "How many pixels away can ants detect pheromones"
     );  
-    addSlider("Pheromone Blur", "gaussianStdDev", 0.1, 0, .5, .005,
+    addSlider("Pheromone Blur", "gaussianStdDev", 0.25, 0, .5, .005,
         "How quickly pheromones diffuse by changing the std deviation of a gaussian distribution"
     );
-    addSlider("Pheromone Fade", "passiveAttenuation", .008, 0.002, .05, .001,
+    addSlider("Pheromone Fade", "passiveAttenuation", .01, 0.002, .05, .001,
         "Amount by which all pheromones are decreased each frame"
     );
-    addCheckbox("Wrap Around", "wrap", true,
+    addCheckbox("Wrap Around", "wrap", false,
         "Whether ants bounce off the edges or wrap around to the other side"
     );
     
@@ -113,6 +113,7 @@ function addCheckbox(name: string, configKey: keyof(ISimulationParameters), init
     const input = document.createElement("input");
     input.setAttribute("id", name);
     input.setAttribute("type", "checkbox");
+    input.checked = initialValue;
 
     const tableRow = document.createElement("tr");
     tableRow.append(

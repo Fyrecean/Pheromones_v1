@@ -55,7 +55,7 @@ export class SimulationPass {
             var sum = vec3(0.);
             let fSteps = f32(steps);
             for (var i = 0.; i < fSteps; i += 1.) {
-                var samplePixel = vec2<u32>(round(sampleStart + i * direction));
+                var samplePixel = vec2<i32>(round(sampleStart + i * direction));
                 if (uniforms.wrap == 1) {
                     if (samplePixel.x < 0) {
                         samplePixel.x += ${simulationParameters.width};
@@ -88,14 +88,14 @@ export class SimulationPass {
 
         if (uniforms.wrap == 1) {
             if (agent.x < 0.) {
-                agent.x = ${simulationParameters.width};
+                agent.x += ${simulationParameters.width};
             } else if (agent.x >= ${simulationParameters.width}) {
-                agent.x = 0.; 
+                agent.x -= ${simulationParameters.width}; 
             }
             if (agent.y < 0.) {
-                agent.y = ${simulationParameters.height};
+                agent.y += ${simulationParameters.height};
             } else if (agent.y >= ${simulationParameters.height}) {
-                agent.y = 0.; 
+                agent.y -= ${simulationParameters.height}; 
             }
         } else {
             if (agent.x >= ${simulationParameters.width} || agent.x < 0) {

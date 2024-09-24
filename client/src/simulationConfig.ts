@@ -1,4 +1,5 @@
 import { config } from "../node_modules/webpack/types";
+import { togglePause, reset } from "./main";
 
 export interface ISimulationParameters {
     agentCount: number
@@ -8,40 +9,63 @@ export interface ISimulationParameters {
     steerFactor: number,
     sampleDistance: number,
     passiveAttenuation: number,
+    gaussianStdDev: number,
 }
 
 export const simulationParameters: ISimulationParameters = {
-    agentCount: 100,
+    agentCount: 50000,
     height: 0,
     width: 0,
     turnJitter: 0,
     steerFactor: .5,
     sampleDistance: 5,
-    passiveAttenuation: .001,
+    passiveAttenuation: 0.001,
+    gaussianStdDev: 0.4,
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    addSlider("Jitter", "turnJitter", 0.5, 0, 1.5);
-    addSlider("Steering", "steerFactor", 0.5, 0, 1);
+    addSlider("Jitter", "turnJitter", .5, 0, 1.5, .01);
+    addSlider("Steering", "steerFactor", 0.25, 0, 1, .01);
+    addSlider("Seeing Distance", "sampleDistance", 10, 1, 100, 1);  
+    addSlider("Pheromone Blur", "gaussianStdDev", 0.05, 0, .5, .005);
+    addSlider("Pheromone Fade", "passiveAttenuation", .008, 0.002, .05, .001);
+
+    document.getElementById("reset").addEventListener("click", reset);
+    let pauseButton = document.getElementById("pause");
+    pauseButton.addEventListener("click", () => {
+        let isPlaying = togglePause();
+        pauseButton.innerText = isPlaying ? "Pause" : "Unpause";
+    });
 }); 
 
-const configPanel = document.getElementById("config");
-function addSlider(name: string, configKey: keyof(ISimulationParameters),initialValue: number, min: number, max: number): void {
+const configTable = document.getElementById("configTable");
+function addSlider(name: string, configKey: keyof(ISimulationParameters),initialValue: number, min: number, max: number, step: number, onUpdate?: () => void): void {
     const sliderLabel = document.createElement("label");
     sliderLabel.setAttribute("for", name);
     sliderLabel.innerText = name;
     const sliderInput = document.createElement("input");
     sliderInput.setAttribute("id", name);
     sliderInput.setAttribute("type", "range");
-    sliderInput.setAttribute("value", String(initialValue));
-    sliderInput.setAttribute("step", String(0.01));
     sliderInput.setAttribute("min", String(min));
     sliderInput.setAttribute("max", String(max));
+    sliderInput.setAttribute("step", String(step));
+    sliderInput.setAttribute("value", String(initialValue));
     const sliderDisplay = document.createElement("span");
 
-    configPanel.append(sliderLabel, sliderInput, sliderDisplay);
+    const tableRow = document.createElement("tr");
+    tableRow.append(
+        document.createElement("td").appendChild(sliderLabel).parentElement,
+        document.createElement("td").appendChild(sliderInput).parentElement,
+        document.createElement("td").appendChild(sliderDisplay).parentElement,
+    );
+    configTable.appendChild(tableRow);
 
-    let onUpdate = () => {
+    if (onUpdate) {
+
+    } else {
+
+    }
+    onUpdate = () => {
         simulationParameters[configKey] = Number(sliderInput.value);
         sliderDisplay.innerText = sliderInput.value;
     };

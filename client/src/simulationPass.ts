@@ -35,6 +35,7 @@ export class SimulationPass {
 
         struct Uniforms {
             time: u32,
+            sampleDistance: u32,
             turnJitter: f32,
             steerFactor: f32,
         }
@@ -89,9 +90,9 @@ export class SimulationPass {
         
         let leftSampleDir = leftSampleMatrix * velocity;
 
-        let rightSample = samplePheromone(agent.xy, rightSampleDir, ${simulationParameters.sampleDistance}).x;
-        let forwardSample = samplePheromone(agent.xy, velocity, ${simulationParameters.sampleDistance}).x;
-        let leftSample = samplePheromone(agent.xy, leftSampleDir, ${simulationParameters.sampleDistance}).x;
+        let rightSample = samplePheromone(agent.xy, rightSampleDir, uniforms.sampleDistance).x;
+        let forwardSample = samplePheromone(agent.xy, velocity, uniforms.sampleDistance).x;
+        let leftSample = samplePheromone(agent.xy, leftSampleDir, uniforms.sampleDistance).x;
         
         if (forwardSample < rightSample || forwardSample < leftSample) {
             if (rightSample > leftSample) {
@@ -114,11 +115,6 @@ export class SimulationPass {
         this.agentsBuffer = agentsBuffer;
         this.workgroups = Math.ceil(simulationParameters.agentCount / WORKGROUP_SIZE);
         this.simulationParameters = simulationParameters;
-
-        this.uniformBuffer = device.createBuffer({
-            size: 12,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-        });
 
         const computeBindGroupLayout = device.createBindGroupLayout({
             label: "Simulation Bind Group Layout",
@@ -166,10 +162,18 @@ export class SimulationPass {
                 entryPoint: 'simulate'
             }
         });
+
+        this.uniformBuffer = device.createBuffer({
+            size: 16,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        });
     }
 
     addPass(commandEncoder: GPUCommandEncoder, textureIn: GPUTexture, textureOut: GPUTexture, timestampWrites?: GPURenderPassTimestampWrites): void {
-        const uniformInts = new Uint32Array([window.performance.now() * 10]);
+        const uniformInts = new Uint32Array([
+            window.performance.now() * 10,
+            this.simulationParameters.sampleDistance,
+        ]);
 
         this.device.queue.writeBuffer(
             this.uniformBuffer,

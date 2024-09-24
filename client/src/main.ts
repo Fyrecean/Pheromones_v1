@@ -4,8 +4,9 @@ import { SimulationPass } from "./simulationPass";
 import { TexturePass } from "./textureComputePass";
 
 const NUMBER_OF_PASSES = 2;
-
-async function go(): Promise<void> {
+let latestFrameHandle = 0;
+let frame: () => void | undefined = undefined;
+export async function start(): Promise<void> {
     const canvas = document.querySelector('canvas') as HTMLCanvasElement;
     const adapter = await navigator.gpu.requestAdapter();
     const hasTimestampQuery = adapter.features.has("timestamp-query");
@@ -15,6 +16,7 @@ async function go(): Promise<void> {
 
     // Performance Statistics Document Setup
     const perfDisplayContainer = document.createElement('div');
+    perfDisplayContainer.hidden = true;
     perfDisplayContainer.style.color = 'white';
     perfDisplayContainer.style.backdropFilter = 'blur(10px)';
     perfDisplayContainer.style.position = 'absolute';
@@ -105,7 +107,7 @@ spare perf buffers:    —`;
     const renderPass = new RenderPass(device, pheromoneTextures[0].format);
 
     let pheromoneIndex = 0;
-    const frame = () => {
+    frame = () => {
         const commandEncoder = device.createCommandEncoder();
         const textureInIndex = pheromoneIndex;
         const textureOutIndex = (pheromoneIndex + 1) % 2
@@ -169,9 +171,25 @@ spare perf buffers:    ${sparePerfTimeBuffers.length}`;
                 }
             });
         }
-        requestAnimationFrame(frame);
+        latestFrameHandle = requestAnimationFrame(frame);
     };
-    requestAnimationFrame(frame);
+    latestFrameHandle = requestAnimationFrame(frame);
 }
 
-go();
+export function togglePause(): boolean {
+    if (latestFrameHandle != 0) {
+        cancelAnimationFrame(latestFrameHandle);
+        latestFrameHandle = 0;
+        return false;
+    } else {
+        latestFrameHandle = requestAnimationFrame(frame);
+        return true;
+    }
+}
+
+export function reset() {
+    cancelAnimationFrame(latestFrameHandle);
+    start();
+}
+
+start();

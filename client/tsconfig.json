@@ -5,7 +5,8 @@
         "outDir": "public",
         "sourceMap": true,
         "noImplicitAny": true,
-        "module": "ES2020",
+        "moduleResolution": "Bundler",
+        "module": "ESNext",
         "target": "ES5",
         "skipLibCheck": true,
     }

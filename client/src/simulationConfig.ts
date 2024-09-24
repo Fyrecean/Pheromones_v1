@@ -1,5 +1,5 @@
 import { config } from "../node_modules/webpack/types";
-import { togglePause, reset } from "./main";
+import { togglePause, reset, start } from "./main";
 
 export interface ISimulationParameters {
     agentCount: number
@@ -13,7 +13,7 @@ export interface ISimulationParameters {
 }
 
 export const simulationParameters: ISimulationParameters = {
-    agentCount: 50000,
+    agentCount: 100_000,
     height: 0,
     width: 0,
     turnJitter: 0,
@@ -23,7 +23,19 @@ export const simulationParameters: ISimulationParameters = {
     gaussianStdDev: 0.4,
 }
 
+const configTable = document.getElementById("configTable");
+let showConfig = false;
 document.addEventListener("DOMContentLoaded", () => {
+    let showButton = document.getElementById("show");
+    showButton.addEventListener("click", () => {
+        if (showConfig) {
+            showConfig = false;
+            configTable.hidden = false;
+        } else {
+            showConfig = true;
+            configTable.hidden = true;
+        }
+    });
     addSlider("Jitter", "turnJitter", .5, 0, 1.5, .01);
     addSlider("Steering", "steerFactor", 0.25, 0, 1, .01);
     addSlider("Seeing Distance", "sampleDistance", 10, 1, 100, 1);  
@@ -36,9 +48,10 @@ document.addEventListener("DOMContentLoaded", () => {
         let isPlaying = togglePause();
         pauseButton.innerText = isPlaying ? "Pause" : "Unpause";
     });
+
+    start();
 }); 
 
-const configTable = document.getElementById("configTable");
 function addSlider(name: string, configKey: keyof(ISimulationParameters),initialValue: number, min: number, max: number, step: number, onUpdate?: () => void): void {
     const sliderLabel = document.createElement("label");
     sliderLabel.setAttribute("for", name);

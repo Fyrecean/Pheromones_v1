@@ -11,7 +11,7 @@ export class SimulationPass {
     workgroups: number;
     bindGroup: GPUBindGroup;
     uniformBuffer: GPUBuffer;
-    pipeline: GPUComputePipeline;
+    pipeline: GPUComputePipeline; 
 
     constructor(device: GPUDevice, simulationParameters: ISimulationParameters, textureFormat: GPUTextureFormat, agentsBuffer: GPUBuffer) {
         const shaderCode = `
@@ -104,7 +104,8 @@ export class SimulationPass {
         }
 
         let pixel = vec2<i32>(round(agent.xy));
-        textureStore(textureOut, pixel, vec4(1., 0., 0., 1.));
+        let color = vec3(0.39, 0.82, 0.06);
+        textureStore(textureOut, pixel, vec4(color, 1.));
         
         agent.z = velocity.x;
         agent.w = velocity.y;

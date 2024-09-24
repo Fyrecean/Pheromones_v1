@@ -2,11 +2,18 @@ body {
     background-color: #222222;
 }
 
+canvas {
+    margin: auto;
+}
+
 #config {
     display: flex;
     flex-direction: column;
+    justify-items: right;
     position: absolute;
     right: 10px;
+    background-color: rgba(31,31,31,.75);
+    border-radius: 10px;
 }
 #configTable > tr > td:first-child {
     color: white;
@@ -15,4 +22,14 @@ body {
 #configTable > tr > td:last-child {
     color: white;
     width: 2rem;
+}
+
+#buttons {
+    display: flex;
+    justify-content: flex-end;
+}
+
+button {
+    width: min-content;
+    text-wrap: nowrap;
 }

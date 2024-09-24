@@ -1,14 +1,18 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>My latest widget</title>
-        <link href="/style.css" rel="stylesheet"></link>
+        <title>Pheromones Simulation</title>
+        <link rel="icon" type="image/x-icon" href="favicon.ico">
+        <link href="style.css" rel="stylesheet"></link>
     </head>
     <body>
         <div id="config">
+            <div id="buttons">    
+                <button id="pause">Pause</button>
+                <button id="reset">Reset</button>
+                <button id="show">Show Config</button>
+            </div>
             <table id="configTable"></table>
-            <button id="pause">Pause</button>
-            <button id="reset">Reset</button>
         </div>
         <div>
             <canvas width="512" height="512"></canvas>

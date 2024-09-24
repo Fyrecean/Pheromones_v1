@@ -8,6 +8,8 @@ let latestFrameHandle = 0;
 let frame: () => void | undefined = undefined;
 export async function start(): Promise<void> {
     const canvas = document.querySelector('canvas') as HTMLCanvasElement;
+    canvas.width = window.innerWidth - 30;
+    canvas.height = window.innerHeight - 30;
     const adapter = await navigator.gpu.requestAdapter();
     const hasTimestampQuery = adapter.features.has("timestamp-query");
     const device = await adapter.requestDevice({
@@ -191,5 +193,3 @@ export function reset() {
     cancelAnimationFrame(latestFrameHandle);
     start();
 }
-
-start();

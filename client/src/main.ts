@@ -10,6 +10,11 @@ export async function start(): Promise<void> {
     const canvas = document.querySelector('canvas') as HTMLCanvasElement;
     canvas.width = window.innerWidth - 30;
     canvas.height = window.innerHeight - 30;
+    if (!navigator.gpu) {
+        const body = document.querySelector("body");
+        body.prepend(document.createTextNode("Your browser does not support Web GPU, the thing that makes this whole website work. Try using Chrome, Microsoft Edge, or Opera. Hopefully Firefox and Safari will get it soon!"));
+        return;
+    }
     const adapter = await navigator.gpu.requestAdapter();
     const hasTimestampQuery = adapter.features.has("timestamp-query");
     const device = await adapter.requestDevice({

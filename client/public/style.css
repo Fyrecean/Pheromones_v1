@@ -1,5 +1,6 @@
 body {
     background-color: #222222;
+    color: white;
 }
 
 canvas {
@@ -16,11 +17,10 @@ canvas {
     border-radius: 10px;
 }
 #configTable > tr > td:first-child {
-    color: white;
+    
     text-align: right;
 }
 #configTable > tr > td:last-child {
-    color: white;
     width: 2rem;
 }
 

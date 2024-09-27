@@ -42,14 +42,22 @@ export class TexturePass {
             // Loop through neighboring pixels (3x3 kernel)
             for (var i: i32 = -1; i <= 1; i++) {
                 for (var j: i32 = -1; j <= 1; j++) {
-                    let samplePixel= vec2(i32(global_id.x) + i, i32(global_id.y) + j);
+                    var samplePixel= vec2(i32(global_id.x) + i, i32(global_id.y) + j);
 
-                    // Ensure we don't sample out of bounds
-                    if (samplePixel.x < ${simulationParameters.width} && samplePixel.y < ${simulationParameters.height}) {
-                        let sampleColor = textureLoad(textureIn, samplePixel).xyz; // Load neighboring pixel color
-                        let kernelIndex = (i+1) * 3 + (j+1);
-                        colorSum += sampleColor * uniforms.blurKernel[i+1][j+1]; // Apply Gaussian kernel
+                    if (samplePixel.x < 0) {
+                        samplePixel.x += ${simulationParameters.width};
+                    } else if (samplePixel.x >= ${simulationParameters.width}) {
+                        samplePixel.x -= ${simulationParameters.width};
                     }
+                    if (samplePixel.y < 0) {
+                        samplePixel.y += ${simulationParameters.height};
+                    } else if (samplePixel.y >= ${simulationParameters.height}) {
+                        samplePixel.y -= ${simulationParameters.height};
+                    }
+        
+                    let sampleColor = textureLoad(textureIn, samplePixel).xyz; // Load neighboring pixel color
+                    let kernelIndex = (i+1) * 3 + (j+1);
+                    colorSum += sampleColor * uniforms.blurKernel[i+1][j+1]; // Apply Gaussian kernel
                 }
             }
 

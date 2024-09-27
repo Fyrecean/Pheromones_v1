@@ -40,6 +40,9 @@ export class SimulationPass {
             turnJitter: f32,
             steerFactor: f32,
             acceleration: f32,
+            cosSampleAngle: f32,
+            sinSampleAngle: f32,
+            speed: f32,
         }
 
         @group(0) @binding(0) var<uniform> uniforms: Uniforms;
@@ -48,11 +51,9 @@ export class SimulationPass {
         @group(0) @binding(2) var<storage, read_write> agents: array<vec4f, ${simulationParameters.agentCount}>;
         @group(0) @binding(3) var textureIn: texture_storage_2d<${textureFormat}, read>;
 
-        const leftSampleMatrix =  mat2x2(0.866025, 0.5, -0.5, 0.866025);
-        const rightSampleMatrix = mat2x2(0.866025, -0.5, 0.5, 0.866025);
-        fn samplePheromone(position: vec2<f32>, direction: vec2<f32>, steps: u32) -> vec3<f32> {
+        fn samplePheromone(position: vec2<f32>, direction: vec2<f32>, steps: u32) -> f32 {
             let sampleStart = position + direction * 2;
-            var sum = vec3(0.);
+            var sum = 0.;
             let fSteps = f32(steps);
             for (var i = 0.; i < fSteps; i += 1.) {
                 var samplePixel = vec2<i32>(round(sampleStart + i * direction));
@@ -68,7 +69,7 @@ export class SimulationPass {
                         samplePixel.y -= ${simulationParameters.height}; 
                     }
                 }
-                sum += textureLoad(textureIn, samplePixel).xyz;
+                sum += textureLoad(textureIn, samplePixel).x;
             }
             return sum;
         }
@@ -108,6 +109,9 @@ export class SimulationPass {
         let randomDirChange = uniforms.turnJitter * vec2(Random(uniforms.time + global_id.x) - .5, Random(uniforms.time + global_id.x + ${simulationParameters.height}) - .5);
         var velocity = normalize(agent.zw + randomDirChange);
 
+        let leftSampleMatrix =  mat2x2(uniforms.cosSampleAngle, uniforms.sinSampleAngle, -uniforms.sinSampleAngle, uniforms.cosSampleAngle);
+        let rightSampleMatrix = mat2x2(uniforms.cosSampleAngle, -uniforms.sinSampleAngle, uniforms.sinSampleAngle, uniforms.cosSampleAngle);
+
         // Take pheromone samples
         let rightSampleDir = rightSampleMatrix * velocity;
         let rightSamplePixel = vec2<i32>(round(agent.xy + 3 * rightSampleDir));
@@ -117,9 +121,9 @@ export class SimulationPass {
         
         let leftSampleDir = leftSampleMatrix * velocity;
 
-        let rightSample = samplePheromone(agent.xy, rightSampleDir, uniforms.sampleDistance).x;
-        let forwardSample = samplePheromone(agent.xy, velocity, uniforms.sampleDistance).x;
-        let leftSample = samplePheromone(agent.xy, leftSampleDir, uniforms.sampleDistance).x;
+        let rightSample = samplePheromone(agent.xy, rightSampleDir, uniforms.sampleDistance);
+        let forwardSample = samplePheromone(agent.xy, velocity, uniforms.sampleDistance);
+        let leftSample = samplePheromone(agent.xy, leftSampleDir, uniforms.sampleDistance);
         
         var maxSample = 0.;
         if (forwardSample < rightSample || forwardSample < leftSample) {
@@ -135,11 +139,11 @@ export class SimulationPass {
             maxSample = forwardSample;
         }
 
-        velocity *= 1 + (uniforms.acceleration * maxSample / f32(uniforms.sampleDistance));
+        velocity *= uniforms.speed + (uniforms.acceleration * maxSample / f32(uniforms.sampleDistance));
 
         let pixel = vec2<i32>(round(agent.xy));
-        let color = vec3(0.39, 0.82, 0.06);
-        textureStore(textureOut, pixel, vec4(color, 1.));
+        let red = vec3(1., 0., 0.);
+        textureStore(textureOut, pixel, vec4(red, 1.));
         
         agent.z = velocity.x;
         agent.w = velocity.y;
@@ -199,7 +203,7 @@ export class SimulationPass {
         });
 
         this.uniformBuffer = device.createBuffer({
-            size: 24,
+            size: 36,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         });
     }
@@ -222,6 +226,9 @@ export class SimulationPass {
             this.simulationParameters.turnJitter,
             this.simulationParameters.steerFactor,
             this.simulationParameters.acceleration,
+            Math.cos(this.simulationParameters.sampleAngle),
+            Math.sin(this.simulationParameters.sampleAngle),
+            this.simulationParameters.speed,
         ])
         this.device.queue.writeBuffer(
             this.uniformBuffer,

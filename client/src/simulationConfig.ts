@@ -7,8 +7,10 @@ export interface ISimulationParameters {
     height: number,
     turnJitter: number,
     steerFactor: number,
+    speed: number,
     acceleration: number,
     sampleDistance: number,
+    sampleAngle: number,
     passiveAttenuation: number,
     gaussianStdDev: number,
     wrap: number,
@@ -20,8 +22,10 @@ export const simulationParameters: ISimulationParameters = {
     width: 0,
     turnJitter: 0,
     steerFactor: .5,
+    speed: 0,
     acceleration: 0.,
     sampleDistance: 5,
+    sampleAngle: 0,
     passiveAttenuation: 0.001,
     gaussianStdDev: 0.4,
     wrap: 1,
@@ -48,11 +52,17 @@ document.addEventListener("DOMContentLoaded", () => {
     addSlider("Steering", "steerFactor", 0.15, 0, 1, .01, 
         "How much do ants steer towards detected pheromones"
     );
-    addSlider("Acceleration", "acceleration", 3, 0, 8, .1,
+    addSlider("Speed", "speed", 1, .1, 2, .1, 
+        "How fast they go"
+    );
+    addSlider("Acceleration", "acceleration", 1, -1, 2, .1,
         "How much do ants speed up when they detect pheromones in front of them"
     );  
     addSlider("Detection Distance", "sampleDistance", 20, 1, 75, 1,
         "How many pixels away can ants detect pheromones"
+    );  
+    addSlider("Detection Angle", "sampleAngle", .52359878, 0.1, 2, .1,
+        "Angle away from center to sample for pheromones in radians"
     );  
     addSlider("Pheromone Blur", "gaussianStdDev", 0.25, 0, .5, .005,
         "How quickly pheromones diffuse by changing the std deviation of a gaussian distribution"

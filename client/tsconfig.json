@@ -3,6 +3,7 @@
         "types": ["@webgpu/types"],
         "lib": ["es2020", "DOM"],
         "outDir": "public",
+        "lib": ["DOM", "ESNext"],
         "sourceMap": true,
         "noImplicitAny": true,
         "moduleResolution": "Bundler",

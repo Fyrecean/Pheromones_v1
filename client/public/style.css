@@ -1,36 +1,4 @@
 body {
-    background-color: #222222;
+    background-color: #1f1e1d;
     color: white;
-}
-
-canvas {
-    margin: auto;
-}
-
-#configFlyout {
-    display: flex;
-    flex-direction: column;
-    justify-items: right;
-    position: absolute;
-    right: 10px;
-    background-color: rgba(31,31,31,.75);
-    border-radius: 10px;
-}
-#configTable > tr > td:first-child {
-    
-    text-align: right;
-}
-#configTable > tr > td:last-child {
-    width: 2rem;
-}
-
-#buttons {
-    display: flex;
-    justify-content: flex-end;
-}
-
-button {
-    width: min-content;
-    text-wrap: nowrap;
-    margin-left: 5px;
 }

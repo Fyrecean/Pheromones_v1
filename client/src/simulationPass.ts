@@ -45,12 +45,18 @@ export class SimulationPass {
             speed: f32,
         }
 
+        struct Ant {
+            position: vec2f,
+            direction: vec2f,
+            pheromoneChannel: u32,
+        }
+
         @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 
-        @group(0) @binding(1) var textureOut: texture_storage_2d<${textureFormat}, write>;
-        @group(0) @binding(2) var<storage, read_write> agents: array<vec4f, ${simulationParameters.agentCount}>;
-        @group(0) @binding(3) var textureIn: texture_storage_2d<${textureFormat}, read>;
-
+        @group(0) @binding(1) var<storage, read_write> agents: array<vec4f, ${simulationParameters.agentCount}>;
+        @group(0) @binding(2) var pheromonesIn: texture_storage_2d<${textureFormat}, read>;
+        @group(0) @binding(3) var pheromonesOut: texture_storage_2d<${textureFormat}, write>;
+        
         fn samplePheromone(position: vec2<f32>, direction: vec2<f32>, steps: u32) -> f32 {
             let sampleStart = position + direction * 2;
             var sum = 0.;
@@ -69,7 +75,7 @@ export class SimulationPass {
                         samplePixel.y -= ${simulationParameters.height}; 
                     }
                 }
-                sum += textureLoad(textureIn, samplePixel).x;
+                sum += textureLoad(pheromonesIn, samplePixel).x;
             }
             return sum;
         }
@@ -143,7 +149,7 @@ export class SimulationPass {
 
         let pixel = vec2<i32>(round(agent.xy));
         let red = vec3(1., 0., 0.);
-        textureStore(textureOut, pixel, vec4(red, 1.));
+        textureStore(pheromonesOut, pixel, vec4(red, 1.));
         
         agent.z = velocity.x;
         agent.w = velocity.y;
@@ -168,16 +174,16 @@ export class SimulationPass {
                 {
                     binding: 1,
                     visibility: GPUShaderStage.COMPUTE,
-                    storageTexture: {
-                        format: textureFormat,
-                        access: "write-only",
+                    buffer: {
+                      type: "storage",
                     },
                 },
                 {
                     binding: 2,
                     visibility: GPUShaderStage.COMPUTE,
-                    buffer: {
-                      type: "storage",
+                    storageTexture: {
+                        format: textureFormat,
+                        access: "read-only",
                     },
                 },
                 {
@@ -185,7 +191,7 @@ export class SimulationPass {
                     visibility: GPUShaderStage.COMPUTE,
                     storageTexture: {
                         format: textureFormat,
-                        access: "read-only",
+                        access: "write-only",
                     },
                 },
             ] as GPUBindGroupLayoutEntry[]
@@ -212,7 +218,7 @@ export class SimulationPass {
         const uniformInts = new Uint32Array([
             window.performance.now() * 10,
             this.simulationParameters.sampleDistance,
-            this.simulationParameters.wrap,
+            this.simulationParameters.wrap ? 1 : 0,
         ]);
 
         this.device.queue.writeBuffer(
@@ -252,15 +258,15 @@ export class SimulationPass {
                 },
                 {
                     binding: 1,
-                    resource: textureOut.createView(),
-                },
-                {
-                    binding: 2,
                     resource:{ buffer: this.agentsBuffer }, 
                 },
                 {
-                    binding: 3,
+                    binding: 2,
                     resource: textureIn.createView(),
+                },
+                {
+                    binding: 3,
+                    resource: textureOut.createView(),
                 },
             ] as GPUBindGroupEntry[]
         });

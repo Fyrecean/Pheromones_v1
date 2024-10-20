@@ -27,8 +27,8 @@ export class TexturePass {
         }
         @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 
-        @group(0) @binding(1) var textureIn: texture_storage_2d<${pheromoneTextureFormat}, read>;
-        @group(0) @binding(2) var textureOut: texture_storage_2d<${pheromoneTextureFormat}, write>;
+        @group(0) @binding(1) var pheromonesIn: texture_storage_2d<${pheromoneTextureFormat}, read>;
+        @group(0) @binding(2) var pheromonesOut: texture_storage_2d<${pheromoneTextureFormat}, write>;
 
         @compute @workgroup_size(8, 8)
         fn attenuate(@builtin(global_invocation_id) global_id: vec3<u32>) {
@@ -55,7 +55,7 @@ export class TexturePass {
                         samplePixel.y -= ${simulationParameters.height};
                     }
         
-                    let sampleColor = textureLoad(textureIn, samplePixel).xyz; // Load neighboring pixel color
+                    let sampleColor = textureLoad(pheromonesIn, samplePixel).xyz; // Load neighboring pixel color
                     let kernelIndex = (i+1) * 3 + (j+1);
                     colorSum += sampleColor * uniforms.blurKernel[i+1][j+1]; // Apply Gaussian kernel
                 }
@@ -63,7 +63,7 @@ export class TexturePass {
 
             colorSum = max(vec3(0.), colorSum - vec3(uniforms.passiveAttenuation));
 
-            textureStore(textureOut, pixel, vec4(colorSum, 1.0)); // Store blurred color
+            textureStore(pheromonesOut, pixel, vec4(colorSum, 1.0)); // Store blurred color
         }
 
             `;

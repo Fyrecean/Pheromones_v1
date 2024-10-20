@@ -1,5 +1,9 @@
-import { config } from "../node_modules/webpack/types";
+import { Vec3 } from "wgpu-matrix";
 import { togglePause, reset, start } from "./main";
+
+export interface IPheromoneLayer {
+    color: Vec3
+}
 
 export interface ISimulationParameters {
     agentCount: number
@@ -13,64 +17,170 @@ export interface ISimulationParameters {
     sampleAngle: number,
     passiveAttenuation: number,
     gaussianStdDev: number,
-    wrap: number,
+    wrap: boolean,
+    pheromone_layers: IPheromoneLayer[]
 }
 
-export const simulationParameters: ISimulationParameters = {
+
+export let simulationParameters: ISimulationParameters = {
     agentCount: 100_000,
     height: 0,
     width: 0,
-    turnJitter: 0,
-    steerFactor: .5,
-    speed: 0,
-    acceleration: 0.,
-    sampleDistance: 5,
-    sampleAngle: 0,
-    passiveAttenuation: 0.001,
-    gaussianStdDev: 0.4,
-    wrap: 1,
+
+    turnJitter: .6,
+    steerFactor: .6,
+    speed: .8,
+    acceleration: .3,
+    sampleDistance: 17,
+    sampleAngle: .4,
+    passiveAttenuation: 0.01,
+    gaussianStdDev: .4,
+    wrap: true,
+    pheromone_layers: []
+}
+const defaultParams = structuredClone(simulationParameters);
+
+const animalNames: string[] = [
+    "Tiger",
+    "Spider",
+    "Bear",
+    "Lion",
+    "Elephant",
+    "Giraffe",
+    "Wolf",
+    "Fox",
+    "Rabbit",
+    "Kangaroo",
+    "Zebra",
+    "Deer",
+    "Leopard",
+    "Panther",
+    "Cheetah",
+    "Eagle",
+    "Falcon",
+    "Hawk",
+    "Owl",
+    "Penguin",
+    "Beetle",
+    "Dolphin",
+    "Shark",
+    "Whale",
+    "Octopus",
+    "Lobster",
+    "Crab",
+    "Horse",
+    "Cow",
+    "Goat",
+    "Sheep",
+    "Chicken",
+    "Duck",
+    "Goose",
+    "Turkey",
+    "Peacock",
+    "Bat",
+    "Rat",
+    "Mouse",
+    "Squirrel",
+    "Chipmunk",
+    "Moose",
+    "Bison",
+    "Antelope",
+    "Crocodile",
+    "Alligator",
+    "Tortoise",
+    "Frog",
+    "Toad",
+    "Snake",
+    "Lizard",
+    "Ant"
+];  
+
+let configTable: HTMLTableElement;
+let showConfig = false;
+
+type cookieType = {[Name: string]: ISimulationParameters};
+
+let savedCookies: cookieType = {};
+
+function loadCookie() {
+    const cookies = document.cookie.split("; ");
+    cookies.forEach(cookie => {
+        if (cookie.startsWith("savedConfigs")) {
+            savedCookies = JSON.parse(cookie.split("savedConfigs: ")[1]) as cookieType;
+        }
+    });
 }
 
-const configTable = document.getElementById("configTable");
-let showConfig = false;
+function saveCookie() {
+    document.cookie = "savedConfigs: "+JSON.stringify(savedCookies);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+    configTable = document.getElementById("configTable") as HTMLTableElement;
+    loadCookie();
+    const configOptions = document.getElementById("savedConfigs") as HTMLSelectElement;
+    const configName = document.getElementById("configName") as HTMLInputElement;
+    configOptions.addEventListener("input", () => {
+        if (configOptions.value == "+Create New") {
+            let randomAnimal = animalNames[Math.floor(Math.random() * animalNames.length)];
+            while (savedCookies[randomAnimal] != undefined) {
+                randomAnimal = animalNames[Math.floor(Math.random() * animalNames.length)];
+            }
+            configOptions.appendChild(new Option(randomAnimal));
+            savedCookies[randomAnimal] = structuredClone(simulationParameters);
+        }
+    });
+    for (let cookieName in savedCookies) {
+        configOptions.appendChild(new Option(cookieName));
+    }
+            
+    console.log(savedCookies);
+    let saveButton = document.getElementById("saveConfig");
+    saveButton.addEventListener("click", () => {
+        let name = configName.value;
+        savedCookies[name] = structuredClone(simulationParameters);
+        configOptions.appendChild(new Option(name));
+        saveCookie();
+    });
+
     let showButton = document.getElementById("show");
+    let configFlyout = document.getElementById("configFlyout");
     showButton.addEventListener("click", () => {
         if (showConfig) {
             showConfig = false;
             showButton.innerText = "Hide Config";
-            configTable.hidden = false;
+            configFlyout.style.display = "";
         } else {
             showConfig = true;
             showButton.innerText = "Show Config";
-            configTable.hidden = true;
+            configFlyout.style.display = "none";
         }
     });
-    addSlider("Jitter", "turnJitter", .75, 0, 1.5, .01,
+    addSlider("Jitter", "turnJitter", 0, 1.5, .01,
         "How much do ants randomly change direction"
     );
-    addSlider("Steering", "steerFactor", 0.15, 0, 1, .01, 
+    addSlider("Steering", "steerFactor", 0, 1, .01, 
         "How much do ants steer towards detected pheromones"
     );
-    addSlider("Speed", "speed", 1, .1, 2, .1, 
+    addSlider("Speed", "speed", .1, 2, .1, 
         "How fast they go"
     );
-    addSlider("Acceleration", "acceleration", 1, -1, 2, .1,
+    addSlider("Acceleration", "acceleration", -1, 2, .1,
         "How much do ants speed up when they detect pheromones in front of them"
     );  
-    addSlider("Detection Distance", "sampleDistance", 20, 1, 75, 1,
+    addSlider("Detection Distance", "sampleDistance", 1, 75, 1,
         "How many pixels away can ants detect pheromones"
     );  
-    addSlider("Detection Angle", "sampleAngle", .52359878, 0.1, 2, .1,
+    addSlider("Detection Angle", "sampleAngle", 0.1, 2, .1,
         "Angle away from center to sample for pheromones in radians"
     );  
-    addSlider("Pheromone Blur", "gaussianStdDev", 0.25, 0, .5, .005,
+    addSlider("Pheromone Blur", "gaussianStdDev", 0, .5, .005,
         "How quickly pheromones diffuse by changing the std deviation of a gaussian distribution"
     );
-    addSlider("Pheromone Fade", "passiveAttenuation", .01, 0.002, .05, .001,
+    addSlider("Pheromone Fade", "passiveAttenuation", 0.002, .05, .001,
         "Amount by which all pheromones are decreased each frame"
     );
-    addCheckbox("Wrap Around", "wrap", false,
+    addCheckbox("Wrap Around", "wrap",
         "Whether ants bounce off the edges or wrap around to the other side"
     );
     
@@ -84,7 +194,11 @@ document.addEventListener("DOMContentLoaded", () => {
     start();
 }); 
 
-function addSlider(name: string, configKey: keyof(ISimulationParameters),initialValue: number, min: number, max: number, step: number, tooltip: string): void {
+type TypedKeys<T, V> = {
+    [K in keyof T]: T[K] extends V ? K : never;
+}[keyof T]
+
+function addSlider(name: string, configKey: TypedKeys<ISimulationParameters, number>, min: number, max: number, step: number, tooltip: string): void {
     const sliderLabel = document.createElement("label");
     sliderLabel.setAttribute("for", name);
     sliderLabel.setAttribute("title", tooltip);
@@ -95,7 +209,7 @@ function addSlider(name: string, configKey: keyof(ISimulationParameters),initial
     sliderInput.setAttribute("min", String(min));
     sliderInput.setAttribute("max", String(max));
     sliderInput.setAttribute("step", String(step));
-    sliderInput.setAttribute("value", String(initialValue));
+    sliderInput.setAttribute("value", String(simulationParameters[configKey]));
     const sliderDisplay = document.createElement("span");
 
     const tableRow = document.createElement("tr");
@@ -115,7 +229,7 @@ function addSlider(name: string, configKey: keyof(ISimulationParameters),initial
 
 }
 
-function addCheckbox(name: string, configKey: keyof(ISimulationParameters), initialValue: boolean, tooltip: string) {
+function addCheckbox(name: string, configKey: TypedKeys<ISimulationParameters, boolean>, tooltip: string) {
     const label = document.createElement("label");
     label.setAttribute("for", name);
     label.setAttribute("title", tooltip);
@@ -123,7 +237,7 @@ function addCheckbox(name: string, configKey: keyof(ISimulationParameters), init
     const input = document.createElement("input");
     input.setAttribute("id", name);
     input.setAttribute("type", "checkbox");
-    input.checked = initialValue;
+    input.checked = simulationParameters[configKey];
 
     const tableRow = document.createElement("tr");
     tableRow.append(
@@ -133,7 +247,7 @@ function addCheckbox(name: string, configKey: keyof(ISimulationParameters), init
     configTable.appendChild(tableRow);
 
     const onUpdate = () => {
-        simulationParameters[configKey] = input.checked ? 1 : 0;
+        simulationParameters[configKey] = input.checked;
     };
     onUpdate();
     input.addEventListener("input", onUpdate);

@@ -24,6 +24,7 @@ export class TexturePass {
         struct Uniforms {
             blurKernel: mat3x3<f32>,
             passiveAttenuation: f32,
+            wrap: u32
         }
         @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 
@@ -43,16 +44,28 @@ export class TexturePass {
             for (var i: i32 = -1; i <= 1; i++) {
                 for (var j: i32 = -1; j <= 1; j++) {
                     var samplePixel= vec2(i32(global_id.x) + i, i32(global_id.y) + j);
-
-                    if (samplePixel.x < 0) {
-                        samplePixel.x += ${simulationParameters.width};
-                    } else if (samplePixel.x >= ${simulationParameters.width}) {
-                        samplePixel.x -= ${simulationParameters.width};
-                    }
-                    if (samplePixel.y < 0) {
-                        samplePixel.y += ${simulationParameters.height};
-                    } else if (samplePixel.y >= ${simulationParameters.height}) {
-                        samplePixel.y -= ${simulationParameters.height};
+                    if (uniforms.wrap == 1) {
+                        if (samplePixel.x < 0) {
+                            samplePixel.x += ${simulationParameters.width};
+                        } else if (samplePixel.x >= ${simulationParameters.width}) {
+                            samplePixel.x -= ${simulationParameters.width};
+                        }
+                        if (samplePixel.y < 0) {
+                            samplePixel.y += ${simulationParameters.height};
+                        } else if (samplePixel.y >= ${simulationParameters.height}) {
+                            samplePixel.y -= ${simulationParameters.height};
+                        }
+                    } else {
+                         if (samplePixel.x < 0) {
+                            samplePixel.x = 0;
+                        } else if (samplePixel.x >= ${simulationParameters.width}) {
+                            samplePixel.x = ${simulationParameters.width} - 1;
+                        }
+                        if (samplePixel.y < 0) {
+                            samplePixel.y = 0;
+                        } else if (samplePixel.y >= ${simulationParameters.height}) {
+                            samplePixel.y = ${simulationParameters.height} - 1;
+                        }
                     }
         
                     let sampleColor = textureLoad(pheromonesIn, samplePixel).xyz; // Load neighboring pixel color
@@ -65,8 +78,7 @@ export class TexturePass {
 
             textureStore(pheromonesOut, pixel, vec4(colorSum, 1.0)); // Store blurred color
         }
-
-            `;
+        `;
 
         this.device = device;
         this.workgroups = [Math.ceil(simulationParameters.width / 8), Math.ceil(simulationParameters.height / 8)];
@@ -146,13 +158,25 @@ export class TexturePass {
                 this.kernel.byteLength,
             );
         }
+
+        // Write floats
+        const floats = new Float32Array([this.simulationParamters.passiveAttenuation])
         this.device.queue.writeBuffer(
             this.uniformBuffer,
             this.kernel.byteLength,
-            new Float32Array([this.simulationParamters.passiveAttenuation]),
+            floats,
             0,
-            1
+            floats.length
         );
+        // Write ints
+        const ints = new Uint32Array([this.simulationParamters.wrap ? 1 : 0]);
+        this.device.queue.writeBuffer(
+            this.uniformBuffer,
+            this.kernel.byteLength + floats.byteLength,
+            ints,
+            0,
+            ints.length
+        )
         const passDescriptor = {
             timestampWrites
         }

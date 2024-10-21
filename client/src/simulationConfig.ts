@@ -117,6 +117,7 @@ function saveCookie() {
 
 document.addEventListener("DOMContentLoaded", () => {
     configTable = document.getElementById("configTable") as HTMLTableElement;
+    let saveButton = document.getElementById("saveConfig") as HTMLButtonElement;
     loadCookie();
     const configOptions = document.getElementById("savedConfigs") as HTMLSelectElement;
     const configName = document.getElementById("configName") as HTMLInputElement;
@@ -126,20 +127,51 @@ document.addEventListener("DOMContentLoaded", () => {
             while (savedCookies[randomAnimal] != undefined) {
                 randomAnimal = animalNames[Math.floor(Math.random() * animalNames.length)];
             }
-            configOptions.appendChild(new Option(randomAnimal));
+            configOptions.prepend(new Option(randomAnimal));
             savedCookies[randomAnimal] = structuredClone(simulationParameters);
+            configOptions.selectedIndex = 0;
+        } else if (configOptions.value == "Default") {
+            setSimulationParams(defaultParams);
+        } else {
+            setSimulationParams(savedCookies[configOptions.value]);
+        }
+        configName.value = configOptions.value;
+        switch (configName.value) {
+            case "Default":
+            case "+Create New": {
+                saveButton.setAttribute("disabled", "");
+                configName.setAttribute("disabled", "");
+            }
+            default: {
+                saveButton.removeAttribute("disabled");
+                configName.removeAttribute("disabled");
+            }
         }
     });
+
     for (let cookieName in savedCookies) {
         configOptions.appendChild(new Option(cookieName));
     }
+
+    if (Object.keys(savedCookies).length < animalNames.length) {
+        configOptions.appendChild(new Option("+Create New"));   
+    }
             
-    console.log(savedCookies);
-    let saveButton = document.getElementById("saveConfig");
     saveButton.addEventListener("click", () => {
         let name = configName.value;
+        switch (name) {
+            case "Default":
+            case "+Create New": {
+                return;
+            }
+        }
+        let selected = configOptions.value;
+        if (configOptions.value != name) {
+            savedCookies[name] = structuredClone(simulationParameters);
+            configOptions.options.item(configOptions.selectedIndex).innerText = name;
+            delete savedCookies[selected];
+        }
         savedCookies[name] = structuredClone(simulationParameters);
-        configOptions.appendChild(new Option(name));
         saveCookie();
     });
 
@@ -194,6 +226,17 @@ document.addEventListener("DOMContentLoaded", () => {
     start();
 }); 
 
+interface ISimControl<T> {
+    key: keyof ISimulationParameters,
+    updater: (value: T) => void
+}
+const controls: ISimControl<unknown>[] = []
+
+function setSimulationParams(newParameters: ISimulationParameters) {
+    Object.assign(simulationParameters, newParameters);
+    controls.forEach(control => control.updater(simulationParameters[control.key]));
+}
+
 type TypedKeys<T, V> = {
     [K in keyof T]: T[K] extends V ? K : never;
 }[keyof T]
@@ -226,7 +269,10 @@ function addSlider(name: string, configKey: TypedKeys<ISimulationParameters, num
     };
     onUpdate();
     sliderInput.addEventListener("input", onUpdate);
-
+    controls.push({key: configKey, updater: (value: Number) => {
+        sliderInput.value = String(value);
+        sliderDisplay.innerText = sliderInput.value 
+    }});
 }
 
 function addCheckbox(name: string, configKey: TypedKeys<ISimulationParameters, boolean>, tooltip: string) {
@@ -251,6 +297,9 @@ function addCheckbox(name: string, configKey: TypedKeys<ISimulationParameters, b
     };
     onUpdate();
     input.addEventListener("input", onUpdate);
+    controls.push({key: configKey, updater: (value: boolean) => {
+        input.checked = value;
+    }});
 }
 
 export function getAgentsArray(parameters: ISimulationParameters): number[] {

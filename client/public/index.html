@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <title>Pheromones Simulation</title>
         <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -10,17 +10,17 @@
             <div id="buttons">    
                 <button id="pause">Pause Sim</button>
                 <button id="reset">Reset Sim</button>
-                <select style="width: 10rem;" id=savedConfigs>
+                <select title="Config Options" style="width: 10rem;" id=savedConfigs>
                     <option>Default</option>
-                    <option>+Create New</option>
                 </select>
-                <button id="show">Show Config</button>
+                <button type="button" id="show">Show Config</button>
             </div>
         </div>
         <div id="configFlyout">
             <div style="display: flex; justify-content: flex-end;">
-                <input width="20rem" id="configName" type="text" placeholder="Config name">
-                <button id="saveConfig">Save</button>
+                <label for="configName">Config Name</label>
+                <input disabled style="margin-left: .5rem; width: 8rem;" id="configName" type="text" placeholder="Default">
+                <button disabled type="button" id="saveConfig">Save</button>
             </div>
             <table id="configTable"></table>
         </div>

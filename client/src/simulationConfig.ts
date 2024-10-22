@@ -188,10 +188,10 @@ document.addEventListener("DOMContentLoaded", () => {
             configFlyout.style.display = "none";
         }
     });
-    addSlider("Jitter", "turnJitter", 0, 1.5, .01,
+    addSlider("Jitter", "turnJitter", 0, 1.5, .05,
         "How much do ants randomly change direction"
     );
-    addSlider("Steering", "steerFactor", 0, 1, .01, 
+    addSlider("Steering", "steerFactor", -1, 1, .05, 
         "How much do ants steer towards detected pheromones"
     );
     addSlider("Speed", "speed", .1, 2, .1, 

@@ -17,7 +17,6 @@ export class TexturePass {
     simulationParamters: ISimulationParameters;
     prevGaussianStdDev: number;
     kernel: Mat3;
-    
 
     constructor(device: GPUDevice, simulationParameters: ISimulationParameters, pheromoneTextureFormat: GPUTextureFormat) {
 

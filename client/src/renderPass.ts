@@ -1,4 +1,5 @@
-import shaderCode from "./shaders/render.wgsl"
+import { Camera2D } from "camera";
+import shaderCode from "./shaders/render_environment.wgsl"
 
 export class RenderPass {
     device: GPUDevice;
@@ -6,17 +7,37 @@ export class RenderPass {
     pipeline: GPURenderPipeline;
     sampler: GPUSampler;
 
-    constructor(device: GPUDevice, textureFormat: GPUTextureFormat) {
+    uniformBuffer: GPUBuffer;
+    camera: Camera2D;
+
+    constructor(device: GPUDevice, textureFormat: GPUTextureFormat, camera: Camera2D) {
         this.device = device;
         this.sampler = device.createSampler({
             minFilter: "linear",
             magFilter: "linear",
         });
+        this.camera = camera;
+        this.uniformBuffer = device.createBuffer({
+            size: this.camera.viewMatrix.byteLength,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        })
         const renderBindGroupLayout = device.createBindGroupLayout({
             label: "Render Bind Group Layout",
             entries: [
                 {
                     binding: 0,
+                    visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX,
+                    buffer: {
+                        type: "uniform"
+                    }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: this.sampler,
+                },
+                {
+                    binding: 2,
                     visibility: GPUShaderStage.FRAGMENT,
                     texture: {
                         format: textureFormat,
@@ -24,11 +45,6 @@ export class RenderPass {
                         
                     }
                 },
-                {
-                    binding: 1,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    sampler: this.sampler,
-                }
             ] as GPUBindGroupLayoutEntry[],
         });
         const renderShaderModule = device.createShaderModule({
@@ -70,6 +86,13 @@ export class RenderPass {
             timestampWrites
         };
 
+        this.device.queue.writeBuffer(this.uniformBuffer,
+            0,
+            this.camera.viewMatrix,
+            0,
+            this.camera.viewMatrix.length,
+        );
+
         // TODO - is recreating the bind group with a texture swap faster than copying texture data back and forth?
         this.bindGroup = this.device.createBindGroup({
             label: "Render Bind Group",
@@ -77,13 +100,19 @@ export class RenderPass {
             entries: [
                 {
                     binding: 0,
-                    resource: pheromoneTexture.createView(),
+                    resource: {
+                        buffer: this.uniformBuffer,
+                    },
                 },
                 {
                     binding: 1,
                     resource: this.sampler,
-                }
-            ],
+                },
+                {
+                    binding: 2,
+                    resource: pheromoneTexture.createView(),
+                },
+            ] as GPUBindGroupEntry[],
         });
 
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);

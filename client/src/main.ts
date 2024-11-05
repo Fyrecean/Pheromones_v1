@@ -1,7 +1,10 @@
+import { handleTranslate, handleZoom } from "./userInput";
+import { camera, Camera2D } from "./camera";
 import { RenderPass } from "./renderPass";
 import { getAgentsArray, simulationParameters } from "./simulationConfig";
 import { SimulationPass } from "./simulationPass";
 import { TexturePass } from "./textureComputePass";
+import { debugMetrics, initalizeDebug, refreshDebug } from "./ui";
 
 const NUMBER_OF_PASSES = 2;
 let latestFrameHandle = 0;
@@ -10,6 +13,10 @@ export async function start(): Promise<void> {
     const canvas = document.querySelector('canvas') as HTMLCanvasElement;
     canvas.width = window.innerWidth - 30;
     canvas.height = window.innerHeight - 30;
+
+    canvas.addEventListener("mousewheel", handleZoom);
+    canvas.addEventListener("mousemove", handleTranslate);
+
     if (!navigator.gpu) {
         const body = document.querySelector("body");
         body.prepend(document.createTextNode("Your browser does not support Web GPU, the thing that makes this whole website work. Try using Chrome, Microsoft Edge, or Opera. Hopefully Firefox and Safari will get it soon!"));
@@ -73,6 +80,7 @@ spare perf buffers:    —`;
 
     simulationParameters.width = canvas.width;
     simulationParameters.height = canvas.height;
+
     const context = canvas.getContext('webgpu') as unknown as GPUCanvasContext;
     const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
     context.configure({
@@ -111,7 +119,7 @@ spare perf buffers:    —`;
 
     const simulationPass = new SimulationPass(device, simulationParameters, pheromoneTextures[0].format, agentsBuffer);
 
-    const renderPass = new RenderPass(device, pheromoneTextures[0].format);
+    const renderPass = new RenderPass(device, pheromoneTextures[0].format, camera);
 
     let pheromoneIndex = 0;
     frame = () => {
@@ -178,8 +186,10 @@ spare perf buffers:    ${sparePerfTimeBuffers.length}`;
                 }
             });
         }
+        refreshDebug();
         latestFrameHandle = requestAnimationFrame(frame);
     };
+    initalizeDebug();
     latestFrameHandle = requestAnimationFrame(frame);
 }
 

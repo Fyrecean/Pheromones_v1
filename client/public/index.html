@@ -10,11 +10,15 @@
             <div id="buttons">    
                 <button id="pause">Pause Sim</button>
                 <button id="reset">Reset Sim</button>
+                <button type="button" id="showDebug">Show Debug Info</button>
                 <select title="Config Options" style="width: 10rem;" id=savedConfigs>
                     <option>Default</option>
                 </select>
-                <button type="button" id="show">Show Config</button>
+                <button type="button" id="showConfig">Show Config</button>
             </div>
+        </div>
+        <div id="debugFlyout">
+            <table id="debugInfoTable"></table>
         </div>
         <div id="configFlyout">
             <div style="display: flex; justify-content: flex-end;">

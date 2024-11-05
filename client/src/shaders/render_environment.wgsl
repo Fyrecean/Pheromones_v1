@@ -1,5 +1,10 @@
-@group(0) @binding(0) var textureIn: texture_2d<f32>;
+struct Uniforms {
+    viewMatrix : mat4x4f,
+}
+
+@group(0) @binding(0) var<uniform> uniforms: Uniforms;
 @group(0) @binding(1) var samplerIn: sampler;
+@group(0) @binding(2) var textureIn: texture_2d<f32>;
 
 struct VertexOut {
     @builtin(position) position : vec4f,
@@ -10,23 +15,23 @@ struct VertexOut {
 fn vertex_main(@builtin(vertex_index) VertexIndex: u32) -> VertexOut
 {
     var vertices = array<vec2f, 6>(
-    vec2(-1, -1),
-    vec2(1, -1),
-    vec2(-1, 1),
-    vec2(1, 1),
-    vec2(1, -1),
-    vec2(-1, 1),
+        vec2(-1, -1),
+        vec2(1, -1),
+        vec2(-1, 1),
+        vec2(1, 1),
+        vec2(1, -1),
+        vec2(-1, 1),
     );
     var uvs = array<vec2f, 6> (
-    vec2(0, 0),
-    vec2(1, 0),
-    vec2(0, 1),
-    vec2(1, 1),
-    vec2(1, 0),
-    vec2(0, 1),
+        vec2(0, 0),
+        vec2(1, 0),
+        vec2(0, 1),
+        vec2(1, 1),
+        vec2(1, 0),
+        vec2(0, 1),
     );
     var output : VertexOut;
-    output.position = vec4(vertices[VertexIndex], 0, 1);
+    output.position = uniforms.viewMatrix * vec4(vertices[VertexIndex], 0, 1);
     output.uv = uvs[VertexIndex];
     
     return output;

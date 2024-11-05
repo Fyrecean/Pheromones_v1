@@ -1,5 +1,6 @@
 import { Vec3 } from "wgpu-matrix";
 import { togglePause, reset, start } from "./main";
+import { debugMetrics } from "./ui";
 
 export interface IPheromoneLayer {
     color: Vec3
@@ -38,6 +39,7 @@ export let simulationParameters: ISimulationParameters = {
     wrap: true,
     pheromone_layers: []
 }
+
 const defaultParams = structuredClone(simulationParameters);
 
 const animalNames: string[] = [
@@ -116,6 +118,7 @@ function saveCookie() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    debugMetrics.push({name: "time", getter: () => new Date().toTimeString()});
     configTable = document.getElementById("configTable") as HTMLTableElement;
     let saveButton = document.getElementById("saveConfig") as HTMLButtonElement;
     loadCookie();
@@ -175,16 +178,16 @@ document.addEventListener("DOMContentLoaded", () => {
         saveCookie();
     });
 
-    let showButton = document.getElementById("show");
+    let showConfigButton = document.getElementById("showConfig");
     let configFlyout = document.getElementById("configFlyout");
-    showButton.addEventListener("click", () => {
+    showConfigButton.addEventListener("click", () => {
         if (showConfig) {
             showConfig = false;
-            showButton.innerText = "Hide Config";
+            showConfigButton.innerText = "Hide Config";
             configFlyout.style.display = "";
         } else {
             showConfig = true;
-            showButton.innerText = "Show Config";
+            showConfigButton.innerText = "Show Config";
             configFlyout.style.display = "none";
         }
     });

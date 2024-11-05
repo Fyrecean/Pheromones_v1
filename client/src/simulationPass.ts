@@ -69,7 +69,7 @@ export class SimulationPass {
         });
 
         this.uniformBuffer = device.createBuffer({
-            size: 36,
+            size: 50,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         });
     }

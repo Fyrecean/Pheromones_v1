@@ -2,8 +2,6 @@ struct Uniforms {
     blurKernel: mat3x3<f32>,
     passiveAttenuation: f32,
     wrap: u32,
-    width: u32,
-    height: u32,
 }
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 
@@ -12,10 +10,11 @@ struct Uniforms {
 
 @compute @workgroup_size(8, 8)
 fn attenuate(@builtin(global_invocation_id) global_id: vec3<u32>) {
-    let size = textureDimensions(pheromonesIn);
-    if (global_id.x >= size.x || global_id.y >= size.y) {
+    let sizeU = (textureDimensions(pheromonesIn));
+    if (global_id.x >= sizeU.x || global_id.y >= sizeU.y) {
         return;
     }
+    let size = vec2<i32>(sizeU);
     
     let pixel = global_id.xy;
     var colorSum = vec3(0.);
@@ -23,7 +22,7 @@ fn attenuate(@builtin(global_invocation_id) global_id: vec3<u32>) {
     // Loop through neighboring pixels (3x3 kernel)
     for (var i: i32 = -1; i <= 1; i++) {
         for (var j: i32 = -1; j <= 1; j++) {
-            var samplePixel= vec2(i32(global_id.x) + i, i32(global_id.y) + j);
+            var samplePixel = vec2(i32(global_id.x) + i, i32(global_id.y) + j);
             if (uniforms.wrap == 1) {
                 if (samplePixel.x < 0) {
                     samplePixel.x += size.x;

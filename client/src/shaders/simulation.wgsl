@@ -48,7 +48,7 @@ fn samplePheromone(position: vec2<f32>, direction: vec2<f32>, steps: u32) -> f32
     var sum = 0.;
     let fSteps = f32(steps);
     for (var i = 0.; i < fSteps; i += 1.) {
-        var samplePixel = vec2<i32>(round(sampleStart + i * direction));
+        var samplePixel = vec2<u32>(round(sampleStart + i * direction));
         if (uniforms.wrap == 1) {
             if (samplePixel.x < 0) {
                 samplePixel.x += uniforms.width;
@@ -69,6 +69,8 @@ fn samplePheromone(position: vec2<f32>, direction: vec2<f32>, steps: u32) -> f32
 @compute @workgroup_size(64)
 fn simulate(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let index = global_id.x;
+    let width = f32(uniforms.width);
+    let height = f32(uniforms.height);
     // Trim off the excess if agentCount % WORKGROUP_SIZE != 0
     if (index >= uniforms.agentCount) {
         return;
@@ -81,20 +83,20 @@ fn simulate(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
     if (uniforms.wrap == 1) {
         if (agent.x < 0.) {
-            agent.x += uniforms.width;
-        } else if (agent.x >= uniforms.width) {
-            agent.x -= uniforms.width; 
+            agent.x += width;
+        } else if (agent.x >= width) {
+            agent.x -= width; 
         }
         if (agent.y < 0.) {
-            agent.y += uniforms.height;
-        } else if (agent.y >= uniforms.height) {
-            agent.y -= uniforms.height; 
+            agent.y += height;
+        } else if (agent.y >= height) {
+            agent.y -= height; 
         }
     } else {
-        if (agent.x >= uniforms.width || agent.x < 0) {
+        if (agent.x >= width || agent.x < 0) {
             agent.z = -agent.z;
         }
-        if (agent.y >= unifroms.height || agent.y < 0) {
+        if (agent.y >= height || agent.y < 0) {
             agent.w = -agent.w;
         }
     }

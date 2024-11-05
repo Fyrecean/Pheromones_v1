@@ -176,12 +176,5 @@ function generateGaussianKernel(stdDev: number, size: number): Mat3 {
     }
     // Ensure the kernel sums to 1
     kernel[offset * size + offset] += 1 - newSum;
-    // console.log(sum, newSum);
-    // console.log(`${kernel[0].toFixed(5)}, ${kernel[1].toFixed(5)}, ${kernel[2].toFixed(5)}\n`, 
-    //             `${kernel[3].toFixed(5)}, ${kernel[4].toFixed(5)}, ${kernel[5].toFixed(5)}\n`, 
-    //             `${kernel[6].toFixed(5)}, ${kernel[7].toFixed(5)}, ${kernel[8].toFixed(5)}`);
     return mat3.create(kernel[0], kernel[1], kernel[2], kernel[3], kernel[4], kernel[5], kernel[6], kernel[7], kernel[8]);
-    // return mat3.create(0, 0, 0,
-    //                    0, 0, 0, 
-    //                    0, 0, 0);
 }

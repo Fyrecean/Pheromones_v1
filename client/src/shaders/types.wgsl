@@ -1,7 +1,10 @@
+// Assumptions: 
+// * Angles are relative to [0, 1] vector
+
 struct Ant {
     position: vec2<f32>,
-    direction: vec2<f32>,
-    @size(16) hue: f32,
+    angle: f32,
+    hue: f32,
 }
 
 struct AntActions {
@@ -9,8 +12,20 @@ struct AntActions {
     turn: f32,
 }
 
-fn rotate(v: vec2f, angle: f32) {
-    return mat2(cos(maxTurn), -sin(maxTurn), sin(maxTurn), cos(maxTurn)) * v;
+fn rot_mat3(angle: f32) -> mat3x3<f32> {
+    return mat3x3(
+        cos(angle), -sin(angle), 0,
+        sin(angle), cos(angle), 0,
+        0, 0, 1
+    );
+}
+
+fn rotate(v: vec2<f32>, angle: f32) -> vec2<f32> {
+    return mat2x2(cos(angle), -sin(angle), sin(angle), cos(angle)) * v;
+}
+
+fn angle_to_vec2(angle: f32) -> vec2<f32> {
+    return vec2(cos(angle), sin(angle));
 }
 
 fn rgb2hsv(rgb: vec3f) -> vec3f {

@@ -194,29 +194,17 @@ document.addEventListener("DOMContentLoaded", () => {
     addSlider("Jitter", "turnJitter", 0, 1.5, .05,
         "How much do ants randomly change direction"
     );
-    addSlider("Steering", "steerFactor", -1, 1, .05, 
+    addSlider("Steering", "steerFactor", -.5, .5, .01, 
         "How much do ants steer towards detected pheromones"
-    );
-    addSlider("Speed", "speed", .1, 2, .1, 
-        "How fast they go"
-    );
-    addSlider("Acceleration", "acceleration", -1, 2, .1,
-        "How much do ants speed up when they detect pheromones in front of them"
-    );  
+    ); 
     addSlider("Detection Distance", "sampleDistance", 1, 75, 1,
         "How many pixels away can ants detect pheromones"
-    );  
-    addSlider("Detection Angle", "sampleAngle", 0.1, 2, .1,
-        "Angle away from center to sample for pheromones in radians"
     );  
     addSlider("Pheromone Blur", "gaussianStdDev", 0, .5, .005,
         "How quickly pheromones diffuse by changing the std deviation of a gaussian distribution"
     );
     addSlider("Pheromone Fade", "passiveAttenuation", 0.002, .05, .001,
         "Amount by which all pheromones are decreased each frame"
-    );
-    addCheckbox("Wrap Around", "wrap",
-        "Whether ants bounce off the edges or wrap around to the other side"
     );
     
     document.getElementById("reset").addEventListener("click", reset);
@@ -310,8 +298,8 @@ export function getAgentsArray(parameters: ISimulationParameters): number[] {
     for (let i = 0; i < parameters.agentCount * 4; i += 4) {
         agentsArray[i] = parameters.width / 2;
         agentsArray[i+1] = parameters.height / 2;
-        agentsArray[i+2] = Math.random()-.5;
-        agentsArray[i+3] = Math.random()-.5 ;
+        agentsArray[i+2] = Math.random() * Math.PI * 2;
+        agentsArray[i+3] = 0;
     }
     return agentsArray;
 }

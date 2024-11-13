@@ -1,5 +1,6 @@
 import { ISimulationParameters } from "./simulationConfig";
-import shaderCode from "./shaders/simulation.wgsl"
+import simulationShader from "./shaders/simulation.wgsl";
+import typesShader from "./shaders/types.wgsl";
 
 const WORKGROUP_SIZE = 64;
 
@@ -63,7 +64,7 @@ export class SimulationPass {
                 bindGroupLayouts: [computeBindGroupLayout],
             }),
             compute: {
-                module: device.createShaderModule({code: shaderCode}),
+                module: device.createShaderModule({code: `${typesShader}\n${simulationShader}`}),
                 entryPoint: 'simulate'
             }
         });
@@ -81,7 +82,6 @@ export class SimulationPass {
             this.simulationParameters.agentCount,
             window.performance.now() * 10,
             this.simulationParameters.sampleDistance,
-            this.simulationParameters.wrap ? 1 : 0,
         ]);
 
         this.device.queue.writeBuffer(
@@ -94,10 +94,6 @@ export class SimulationPass {
         const uniformFloats = new Float32Array([
             this.simulationParameters.turnJitter,
             this.simulationParameters.steerFactor,
-            this.simulationParameters.acceleration,
-            Math.cos(this.simulationParameters.sampleAngle),
-            Math.sin(this.simulationParameters.sampleAngle),
-            this.simulationParameters.speed,
         ])
         this.device.queue.writeBuffer(
             this.uniformBuffer,

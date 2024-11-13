@@ -4,7 +4,7 @@ import { RenderPass } from "./renderPass";
 import { getAgentsArray, simulationParameters } from "./simulationConfig";
 import { SimulationPass } from "./simulationPass";
 import { TexturePass } from "./textureComputePass";
-import { debugMetrics, initalizeDebug, refreshDebug } from "./ui";
+import { debugMetrics, initalizeDebug, refreshDebug } from "./debugMenu";
 
 const NUMBER_OF_PASSES = 2;
 let latestFrameHandle = 0;

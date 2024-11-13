@@ -78,7 +78,7 @@ export class RenderPass {
             colorAttachments: [
                 {
                     view: targetView,
-                    clearValue: [0, 0, 0, 1],
+                    clearValue: [0.12, 0.12, 0.11,1],
                     loadOp: 'clear',
                     storeOp: 'store',
                 },

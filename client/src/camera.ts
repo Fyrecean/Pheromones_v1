@@ -1,14 +1,20 @@
 import { simulationParameters } from "./simulationConfig";
 import { mat4, Mat4, vec4 } from "wgpu-matrix";
-import { debugMetrics } from "./ui";
+import { debugMetrics } from "./debugMenu";
 
 export class Camera2D {
     viewMatrix: Mat4;
     minZoom: number;
     maxZoom: number;
-    translationTether: number;
-    get position() {
-        return [this.viewMatrix[3], this.viewMatrix[7]];
+    _translationTether: number;
+    get translationTether() {
+        return this._translationTether * this.scale;
+    }
+    get positionX() {
+        return this.viewMatrix[12];
+    }
+    get positionY() {
+        return this.viewMatrix[13];
     }
     get scale() {
         return this.viewMatrix[0];
@@ -18,10 +24,13 @@ export class Camera2D {
         this.viewMatrix = mat4.identity();
         this.minZoom = minZoom;
         this.maxZoom = maxZoom;
-        this.translationTether = translationTether;
+        this._translationTether = translationTether;
 
-        debugMetrics.push({name: "min Zoom", getter: () => this.minZoom.toString()});
         debugMetrics.push({name: "Camera Scale", getter: () => this.scale.toString()});
+        debugMetrics.push({name: "Camera X", getter: () => this.positionX.toString()});
+        debugMetrics.push({name: "Camera Y", getter: () => this.positionY.toString()});
+        debugMetrics.push({name: "Tether", getter: () => this.translationTether.toString()});
+
     }
 
     /**
@@ -30,6 +39,20 @@ export class Camera2D {
      */
     translate(x: number, y: number) {
         let [xCamera, yCamera] = this.pixelDeltaToCamera(x, y);
+        let newX = this.positionX + xCamera;
+        if (newX < -this.translationTether) {
+            xCamera = -this.translationTether - this.positionX;
+        }
+        if (newX > this.translationTether) {
+            xCamera = this.translationTether - this.positionX;
+        }
+        let newY = this.positionY + yCamera;
+        if (newY < -this.translationTether) {
+            yCamera = -this.translationTether - this.positionY;
+        }
+        if (newY > this.translationTether) {
+            yCamera = this.translationTether - this.positionY;
+        }
         const translation = mat4.translation(vec4.fromValues(xCamera, yCamera, 0, 0));
         mat4.multiply(camera.viewMatrix, translation, camera.viewMatrix);
     }
@@ -40,7 +63,6 @@ export class Camera2D {
             let [xCamera, yCamera] = this.pixelToCamera(x, y);
             const mouseToOrigin = mat4.translation(vec4.fromValues(xCamera, yCamera, 0, 0));
             let newScale = this.scale * (1 - amount);
-            console.log(amount, newScale)
             if (newScale > this.minZoom) {
                 amount = -this.minZoom / this.scale + 1;
             } else if (newScale < this.maxZoom) {
@@ -71,4 +93,4 @@ export class Camera2D {
     }
 }
 
-export const camera: Camera2D = new Camera2D(8, 1, 10);
+export const camera: Camera2D = new Camera2D(8, 1, 1);

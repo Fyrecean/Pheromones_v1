@@ -1,6 +1,6 @@
 import { Vec3 } from "wgpu-matrix";
 import { togglePause, reset, start } from "./main";
-import { debugMetrics } from "./ui";
+import { debugMetrics } from "./debugMenu";
 
 export interface IPheromoneLayer {
     color: Vec3

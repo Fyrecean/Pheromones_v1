@@ -10,11 +10,12 @@ interface MetricRefresher {
 }
 const debugMetricDisplays: MetricRefresher[] = [];
 
-let showDebug = true;
-export function initalizeDebug() {
+let showDebug = false;
+export function initalizeDebug(show: boolean = false) {
+    showDebug = !show;
     const showDebugButton = document.getElementById("showDebug");
     const debugPanel = document.getElementById("debugFlyout");
-    showDebugButton.onclick = () => {
+    const showHide = () => {
         showDebug = !showDebug;
         if (showDebug) {
             showDebugButton.innerText = "Hide Debug Info";
@@ -24,18 +25,20 @@ export function initalizeDebug() {
             debugPanel.hidden = true;
             debugPanel.style.display = "none";
         }
-    }
-
+    };
+    showDebugButton.onclick = showHide;
+    
     const debugTable = document.getElementById("debugInfoTable");
     debugTable.innerHTML = null;  
     debugMetrics.forEach(metric => {
-    const row = document.createElement("tr");
+        const row = document.createElement("tr");
         row.appendChild(document.createElement("td")).innerText = metric.name;
         const dataCell = document.createElement("td");
         row.appendChild(dataCell);
         debugTable.appendChild(row);
         debugMetricDisplays.push({ cell: dataCell, metric });
     });
+    showHide();
 }
 
 export function refreshDebug() {

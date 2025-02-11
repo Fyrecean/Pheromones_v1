@@ -5,6 +5,7 @@ struct Ant {
     position: vec2<f32>,
     angle: f32,
     hue: f32,
+    energy: f32,
 }
 
 struct AntActions {

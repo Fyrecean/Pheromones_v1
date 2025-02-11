@@ -2,10 +2,6 @@ import { Vec3 } from "wgpu-matrix";
 import { togglePause, reset, start } from "./main";
 import { debugMetrics } from "./debugMenu";
 
-export interface IPheromoneLayer {
-    color: Vec3
-}
-
 export interface ISimulationParameters {
     agentCount: number
     width: number,
@@ -19,7 +15,6 @@ export interface ISimulationParameters {
     passiveAttenuation: number,
     gaussianStdDev: number,
     wrap: boolean,
-    pheromone_layers: IPheromoneLayer[]
 }
 
 
@@ -37,7 +32,6 @@ export let simulationParameters: ISimulationParameters = {
     passiveAttenuation: 0.01,
     gaussianStdDev: .4,
     wrap: true,
-    pheromone_layers: []
 }
 
 const defaultParams = structuredClone(simulationParameters);

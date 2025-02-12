@@ -1,8 +1,21 @@
 import { ISimulationParameters } from "./simulationConfig";
 import simulationShader from "./shaders/simulation.wgsl";
 import typesShader from "./shaders/types.wgsl";
+import { Vec2 } from "wgpu-matrix";
 
 const WORKGROUP_SIZE = 64;
+
+export function getAgentsBuffer(parameters: ISimulationParameters) {
+    const agentsArray = new Array(4 * parameters.agentCount);
+    for (let i = 0; i < parameters.agentCount * 4; i += 4) {
+        agentsArray[i] = parameters.width / 2; // X
+        agentsArray[i+1] = parameters.height / 2; // Y
+        agentsArray[i+2] = Math.random() * Math.PI * 2; // Angle
+        agentsArray[i+3] = 0; // hue
+        agentsArray[i+4] = 1;
+    }
+    return agentsArray;
+}
 
 export class SimulationPass {
     device: GPUDevice;
@@ -117,7 +130,7 @@ export class SimulationPass {
                 },
                 {
                     binding: 1,
-                    resource:{ buffer: this.agentsBuffer }, 
+                    resource: { buffer: this.agentsBuffer }, 
                 },
                 {
                     binding: 2,

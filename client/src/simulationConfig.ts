@@ -19,7 +19,7 @@ export interface ISimulationParameters {
 
 
 export let simulationParameters: ISimulationParameters = {
-    agentCount: 100_000,
+    agentCount: 400_000,
     height: 0,
     width: 0,
 

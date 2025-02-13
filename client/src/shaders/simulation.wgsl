@@ -24,6 +24,8 @@ struct Uniforms {
     sampleDistance: u32,
     turnJitter: f32,
     steerFactor: f32,
+    speed: f32,
+    energyCost: f32,
 }
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
@@ -55,13 +57,13 @@ fn samplePheromone(position: vec2<f32>, direction: vec2<f32>, steps: u32) -> f32
 
 @compute @workgroup_size(64)
 fn simulate(@builtin(global_invocation_id) global_id: vec3<u32>) {
-    let index = global_id.x;
-    let width = f32(uniforms.width);
-    let height = f32(uniforms.height);
     // Trim off the excess if agentCount % WORKGROUP_SIZE != 0
+    let index = global_id.x;
     if (index >= uniforms.agentCount) {
         return;
     }
+    let width = f32(uniforms.width);
+    let height = f32(uniforms.height);
 
     var agent = agents[index];
 
@@ -69,11 +71,17 @@ fn simulate(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let randomDirChange = uniforms.turnJitter * (2. * Random(uniforms.time + global_id.x) - 1.);
     agent.angle += randomDirChange;
     var velocity = angle_to_vec2(agent.angle);
-    agent.position += velocity;
-    if (agent.position.x >= f32(uniforms.width)) { agent.position.x -= f32(uniforms.width); }
-    if (agent.position.x < 0.) {agent.position.x += f32(uniforms.width);}
-    if (agent.position.y >= f32(uniforms.height)) { agent.position.y -= f32(uniforms.height); }
-    if (agent.position.y < 0.) {agent.position.y += f32(uniforms.height);}
+    agent.position += velocity * uniforms.speed;
+    agent.energy -= uniforms.energyCost;
+    if (agent.energy <= 0) {
+        agent.position = vec2(f32(uniforms.width / 2), f32(uniforms.height / 2));
+        agent.energy = 1.;
+        agent.angle = Random(uniforms.time + global_id.x) * 6.2831853072;
+    }
+    if (agent.position.x >= width) { agent.position.x -= width; }
+    if (agent.position.x < 0.) {agent.position.x += width;}
+    if (agent.position.y >= height) { agent.position.y -= height; }
+    if (agent.position.y < 0.) {agent.position.y += height;}
 
     // Sniff
     let rightSampleDir = rotate(velocity, 0.3);
@@ -93,7 +101,7 @@ fn simulate(@builtin(global_invocation_id) global_id: vec3<u32>) {
     }
 
     let pixel = vec2<i32>(round(agent.position));
-    let red = vec3(1., 0., 0.);
+    let red = vec3(agent.hue * agent.energy, 1., 1.);
     textureStore(pheromonesOut, pixel, vec4(red, 1.));
 
     agents[index] = agent;

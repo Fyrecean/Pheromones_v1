@@ -1,5 +1,6 @@
 import { Camera2D } from "camera";
 import shaderCode from "./shaders/render_environment.wgsl"
+import typesShader from "./shaders/types.wgsl";
 
 export class RenderPass {
     device: GPUDevice;
@@ -48,7 +49,7 @@ export class RenderPass {
             ] as GPUBindGroupLayoutEntry[],
         });
         const renderShaderModule = device.createShaderModule({
-            code: shaderCode
+            code: `${typesShader}\n${shaderCode}`
         });
 
         this.pipeline = device.createRenderPipeline({

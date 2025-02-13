@@ -1,8 +1,8 @@
 import { handleTranslate, handleZoom } from "./userInput";
 import { camera, Camera2D } from "./camera";
 import { RenderPass } from "./renderPass";
-import { getAgentsArray, simulationParameters } from "./simulationConfig";
-import { SimulationPass } from "./simulationPass";
+import { simulationParameters } from "./simulationConfig";
+import { ANT_STRUCT_SIZE, SimulationPass, getAgentsArray } from "./simulationPass";
 import { TexturePass } from "./textureComputePass";
 import { debugMetrics, initalizeDebug, refreshDebug } from "./debugMenu";
 
@@ -27,6 +27,7 @@ export async function start(): Promise<void> {
     const device = await adapter.requestDevice({
         requiredFeatures: hasTimestampQuery ? ["timestamp-query"] as GPUFeatureName[]: [],
     });
+    device.pushErrorScope("internal");
 
     // Performance Statistics Document Setup
     const perfDisplayContainer = document.createElement('div');
@@ -46,6 +47,7 @@ export async function start(): Promise<void> {
     let timerSamples = 0;
 
     const sparePerfTimeBuffers: GPUBuffer[] = [];
+    const agentsOutputBuffers: GPUBuffer[] = [];
     let querySet: GPUQuerySet | undefined = undefined;
     let perfResolveBuffer: GPUBuffer | undefined = undefined;
     let simulationPerfTimeStampWrites: GPUComputePassTimestampWrites | undefined = undefined;
@@ -108,8 +110,8 @@ spare perf buffers:    —`;
 
     const agentsBuffer = device.createBuffer({
         label: "agents",
-        size: 16 * simulationParameters.agentCount,
-        usage: GPUBufferUsage.STORAGE,
+        size: Float32Array.BYTES_PER_ELEMENT * ANT_STRUCT_SIZE * simulationParameters.agentCount,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         mappedAtCreation: true,
     });
     new Float32Array(agentsBuffer.getMappedRange()).set(getAgentsArray(simulationParameters));
@@ -130,7 +132,6 @@ spare perf buffers:    —`;
         texturePass.addPass(commandEncoder, pheromoneTextures[textureInIndex], pheromoneTextures[textureOutIndex])
 
         simulationPass.addPass(commandEncoder, pheromoneTextures[textureInIndex], pheromoneTextures[textureOutIndex], simulationPerfTimeStampWrites);
-
         const canvasTextureView = context.getCurrentTexture().createView();
         renderPass.addPass(commandEncoder, pheromoneTextures[pheromoneIndex], canvasTextureView, renderPerfTimeStampWrites);
         pheromoneIndex = textureOutIndex;
@@ -151,9 +152,22 @@ spare perf buffers:    —`;
                 resultBuffer.size
             );
         }
-
+        // let agentsOutputBuffer: GPUBuffer | undefined = undefined;
+        // agentsOutputBuffer = agentsOutputBuffers.pop() || 
+        //     device.createBuffer({
+        //         size: Float32Array.BYTES_PER_ELEMENT * ANT_STRUCT_SIZE * simulationParameters.agentCount,
+        //         usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+        //     });
+        // commandEncoder.copyBufferToBuffer(agentsBuffer, 0, agentsOutputBuffer, 0, agentsBuffer.size);
         device.queue.submit([commandEncoder.finish()]);
 
+
+        // agentsOutputBuffer.mapAsync(GPUMapMode.READ).then(() => {
+        //     const agents = new Float32Array(agentsOutputBuffer.getMappedRange());
+        //     console.log(agents.length, agents);
+        //     agentsOutputBuffer.unmap();
+        //     agentsOutputBuffers.push(agentsOutputBuffer);
+        // });
         if (hasTimestampQuery) {
             resultBuffer.mapAsync(GPUMapMode.READ).then(() => {
                 const times = new BigInt64Array(resultBuffer.getMappedRange());

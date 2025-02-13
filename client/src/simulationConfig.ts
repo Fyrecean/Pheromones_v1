@@ -9,29 +9,25 @@ export interface ISimulationParameters {
     turnJitter: number,
     steerFactor: number,
     speed: number,
-    acceleration: number,
+    energyCost: number,
     sampleDistance: number,
-    sampleAngle: number,
     passiveAttenuation: number,
     gaussianStdDev: number,
-    wrap: boolean,
 }
 
 
 export let simulationParameters: ISimulationParameters = {
-    agentCount: 400_000,
+    agentCount: 200_000,
     height: 0,
     width: 0,
 
     turnJitter: .6,
     steerFactor: .6,
     speed: .8,
-    acceleration: .3,
+    energyCost: .001,
     sampleDistance: 17,
-    sampleAngle: .4,
     passiveAttenuation: 0.01,
     gaussianStdDev: .4,
-    wrap: true,
 }
 
 const defaultParams = structuredClone(simulationParameters);
@@ -191,6 +187,12 @@ document.addEventListener("DOMContentLoaded", () => {
     addSlider("Steering", "steerFactor", -.5, .5, .01, 
         "How much do ants steer towards detected pheromones"
     ); 
+    addSlider("Speed", "speed", .1, 2, .1, 
+        "How many pixels can an ant step"
+    );
+    addSlider("EnergyCost", "energyCost", .0001, .05, .0001, 
+        "How many pixels can an ant step"
+    );
     addSlider("Detection Distance", "sampleDistance", 1, 75, 1,
         "How many pixels away can ants detect pheromones"
     );  
@@ -260,40 +262,29 @@ function addSlider(name: string, configKey: TypedKeys<ISimulationParameters, num
     }});
 }
 
-function addCheckbox(name: string, configKey: TypedKeys<ISimulationParameters, boolean>, tooltip: string) {
-    const label = document.createElement("label");
-    label.setAttribute("for", name);
-    label.setAttribute("title", tooltip);
-    label.innerText = name;
-    const input = document.createElement("input");
-    input.setAttribute("id", name);
-    input.setAttribute("type", "checkbox");
-    input.checked = simulationParameters[configKey];
+// function addCheckbox(name: string, configKey: TypedKeys<ISimulationParameters, boolean>, tooltip: string) {
+//     const label = document.createElement("label");
+//     label.setAttribute("for", name);
+//     label.setAttribute("title", tooltip);
+//     label.innerText = name;
+//     const input = document.createElement("input");
+//     input.setAttribute("id", name);
+//     input.setAttribute("type", "checkbox");
+//     input.checked = simulationParameters[configKey];
 
-    const tableRow = document.createElement("tr");
-    tableRow.append(
-        document.createElement("td").appendChild(label).parentElement,
-        document.createElement("td").appendChild(input).parentElement,
-    );
-    configTable.appendChild(tableRow);
+//     const tableRow = document.createElement("tr");
+//     tableRow.append(
+//         document.createElement("td").appendChild(label).parentElement,
+//         document.createElement("td").appendChild(input).parentElement,
+//     );
+//     configTable.appendChild(tableRow);
 
-    const onUpdate = () => {
-        simulationParameters[configKey] = input.checked;
-    };
-    onUpdate();
-    input.addEventListener("input", onUpdate);
-    controls.push({key: configKey, updater: (value: boolean) => {
-        input.checked = value;
-    }});
-}
-
-export function getAgentsArray(parameters: ISimulationParameters): number[] {
-    const agentsArray = new Array(4 * parameters.agentCount);
-    for (let i = 0; i < parameters.agentCount * 4; i += 4) {
-        agentsArray[i] = parameters.width / 2;
-        agentsArray[i+1] = parameters.height / 2;
-        agentsArray[i+2] = Math.random() * Math.PI * 2;
-        agentsArray[i+3] = 0;
-    }
-    return agentsArray;
-}
+//     const onUpdate = () => {
+//         simulationParameters[configKey] = input.checked;
+//     };
+//     onUpdate();
+//     input.addEventListener("input", onUpdate);
+//     controls.push({key: configKey, updater: (value: boolean) => {
+//         input.checked = value;
+//     }});
+// }

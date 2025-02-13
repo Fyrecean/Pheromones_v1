@@ -1,18 +1,19 @@
 import { ISimulationParameters } from "./simulationConfig";
 import simulationShader from "./shaders/simulation.wgsl";
 import typesShader from "./shaders/types.wgsl";
-import { Vec2 } from "wgpu-matrix";
 
 const WORKGROUP_SIZE = 64;
+export const ANT_STRUCT_SIZE = 6;
 
-export function getAgentsBuffer(parameters: ISimulationParameters) {
-    const agentsArray = new Array(4 * parameters.agentCount);
-    for (let i = 0; i < parameters.agentCount * 4; i += 4) {
+export function getAgentsArray(parameters: ISimulationParameters): Array<number> {
+    const agentsArray = new Array(ANT_STRUCT_SIZE * parameters.agentCount);
+    for (let i = 0; i < agentsArray.length; i += ANT_STRUCT_SIZE) {
         agentsArray[i] = parameters.width / 2; // X
         agentsArray[i+1] = parameters.height / 2; // Y
-        agentsArray[i+2] = Math.random() * Math.PI * 2; // Angle
-        agentsArray[i+3] = 0; // hue
-        agentsArray[i+4] = 1;
+        agentsArray[i+2] = i / (6 * parameters.agentCount) * Math.PI * 2; // Angle
+        agentsArray[i+3] = i / (6 * parameters.agentCount); // hue
+        agentsArray[i+4] = Math.random(); // Energy
+        agentsArray[i+5] = 0;
     }
     return agentsArray;
 }
@@ -83,7 +84,7 @@ export class SimulationPass {
         });
 
         this.uniformBuffer = device.createBuffer({
-            size: 50,
+            size: 58,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         });
     }
@@ -107,6 +108,8 @@ export class SimulationPass {
         const uniformFloats = new Float32Array([
             this.simulationParameters.turnJitter,
             this.simulationParameters.steerFactor,
+            this.simulationParameters.speed,
+            this.simulationParameters.energyCost,
         ])
         this.device.queue.writeBuffer(
             this.uniformBuffer,

@@ -10,6 +10,7 @@ export interface ISimulationParameters {
     steerFactor: number,
     speed: number,
     energyCost: number,
+    hueAffinity: number,
     sampleDistance: number,
     passiveAttenuation: number,
     gaussianStdDev: number,
@@ -17,14 +18,15 @@ export interface ISimulationParameters {
 
 
 export let simulationParameters: ISimulationParameters = {
-    agentCount: 200_000,
+    agentCount: 100000,
     height: 0,
     width: 0,
 
     turnJitter: .6,
     steerFactor: .6,
     speed: .8,
-    energyCost: .001,
+    energyCost: 0,
+    hueAffinity: .1,
     sampleDistance: 17,
     passiveAttenuation: 0.01,
     gaussianStdDev: .4,
@@ -190,8 +192,11 @@ document.addEventListener("DOMContentLoaded", () => {
     addSlider("Speed", "speed", .1, 2, .1, 
         "How many pixels can an ant step"
     );
-    addSlider("EnergyCost", "energyCost", .0001, .05, .0001, 
+    addSlider("Energy Cost", "energyCost", 0, .01, .0001, 
         "How many pixels can an ant step"
+    );
+    addSlider("Hue Affinity", "hueAffinity",0, 10, .1, 
+        "How much more do ants prefer their own hue of pheromone"
     );
     addSlider("Detection Distance", "sampleDistance", 1, 75, 1,
         "How many pixels away can ants detect pheromones"

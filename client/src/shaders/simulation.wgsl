@@ -26,6 +26,7 @@ struct Uniforms {
     steerFactor: f32,
     speed: f32,
     energyCost: f32,
+    hueAffinity: f32,
 }
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
@@ -34,7 +35,7 @@ struct Uniforms {
 @group(0) @binding(2) var pheromonesIn: texture_storage_2d<rgba8unorm, read>;
 @group(0) @binding(3) var pheromonesOut: texture_storage_2d<rgba8unorm, write>;
 
-fn samplePheromone(position: vec2<f32>, direction: vec2<f32>, steps: u32) -> f32 {
+fn samplePheromone(position: vec2<f32>, direction: vec2<f32>, steps: u32, targetHue: f32) -> f32 {
     let sampleStart = position + direction * 2;
     var sum = 0.;
     let fSteps = f32(steps);
@@ -50,7 +51,15 @@ fn samplePheromone(position: vec2<f32>, direction: vec2<f32>, steps: u32) -> f32
         } else if (samplePixel.y >= uniforms.height) {
             samplePixel.y -= uniforms.height; 
         }
-        sum += textureLoad(pheromonesIn, samplePixel).x;
+        let rgb = textureLoad(pheromonesIn, samplePixel).xyz;
+        let hsv = rgb2hsv(rgb);
+        var hueDiff = 2 * min(abs(hsv.x - targetHue), 1 - abs(hsv.x - targetHue));
+        if (hueDiff < uniforms.hueAffinity) {
+            sum += hsv.z;
+        }
+        // let affinity = (exp(-uniforms.hueAffinity * hueDiff)) * hsv.z;
+        let affinity = (1-sqrt(uniforms.hueAffinity * hueDiff)) * (rgb.x + rgb.y + rgb.z);
+        sum += affinity;
     }
     return sum;
 }
@@ -74,7 +83,9 @@ fn simulate(@builtin(global_invocation_id) global_id: vec3<u32>) {
     agent.position += velocity * uniforms.speed;
     agent.energy -= uniforms.energyCost;
     if (agent.energy <= 0) {
-        agent.position = vec2(f32(uniforms.width / 2), f32(uniforms.height / 2));
+        let xOffset = Hash(uniforms.time + global_id.x + 1) % 10 - 5;
+        let yOffset = Hash(uniforms.time + global_id.x + 2) % 10 - 5;
+        agent.position = vec2(f32(uniforms.width / 2 + xOffset), f32(uniforms.height / 2 + yOffset));
         agent.energy = 1.;
         agent.angle = Random(uniforms.time + global_id.x) * 6.2831853072;
     }
@@ -87,9 +98,9 @@ fn simulate(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let rightSampleDir = rotate(velocity, 0.3);
     let leftSampleDir = rotate(velocity, -0.3);
 
-    let rightSample = samplePheromone(agent.position, rightSampleDir, uniforms.sampleDistance);
-    let forwardSample = samplePheromone(agent.position, velocity, uniforms.sampleDistance);
-    let leftSample = samplePheromone(agent.position, leftSampleDir, uniforms.sampleDistance);
+    let rightSample = samplePheromone(agent.position, rightSampleDir, uniforms.sampleDistance, agent.hue);
+    let forwardSample = samplePheromone(agent.position, velocity, uniforms.sampleDistance, agent.hue);
+    let leftSample = samplePheromone(agent.position, leftSampleDir, uniforms.sampleDistance, agent.hue);
 
     if (forwardSample < rightSample || forwardSample < leftSample) {
         if (rightSample > leftSample) {
@@ -101,8 +112,11 @@ fn simulate(@builtin(global_invocation_id) global_id: vec3<u32>) {
     }
 
     let pixel = vec2<i32>(round(agent.position));
-    let red = vec3(agent.hue * agent.energy, 1., 1.);
-    textureStore(pheromonesOut, pixel, vec4(red, 1.));
+    let existing = textureLoad(pheromonesIn, pixel).xyz;
+    let rgb = hsv2rgb(vec3(agent.hue, 1., 1.));
+    let newPheromone = mix(existing, rgb, agent.energy);
+    // let newPheromone = clamp(existing + rgb, vec3(0.), vec3(1.));
+    textureStore(pheromonesOut, pixel, vec4(newPheromone, 1.));
 
     agents[index] = agent;
 }

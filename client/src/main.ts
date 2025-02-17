@@ -31,7 +31,7 @@ export async function start(): Promise<void> {
 
     // Performance Statistics Document Setup
     const perfDisplayContainer = document.createElement('div');
-    perfDisplayContainer.hidden = true;
+    // perfDisplayContainer.hidden = true;
     perfDisplayContainer.style.color = 'white';
     perfDisplayContainer.style.backdropFilter = 'blur(10px)';
     perfDisplayContainer.style.position = 'absolute';

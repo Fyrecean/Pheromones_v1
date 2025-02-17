@@ -31,7 +31,7 @@ fn angle_to_vec2(angle: f32) -> vec2<f32> {
 
 fn rgb2hsv(rgb: vec3f) -> vec3f {
     let k = vec4(0., -1 / 3., 2. / 3., -1);
-    let p = mix(vec4(rgb.zy, k.xy), vec4(rgb.yz, k.xy), step(rgb.z, rgb.y));
+    let p = mix(vec4(rgb.zy, k.wz), vec4(rgb.yz, k.xy), step(rgb.z, rgb.y));
     let q = mix(vec4(p.xyw, rgb.x), vec4(rgb.x, p.yzx), step(p.x, rgb.x));
     let d = q.x - min(q.w, q.y);
     let e = 1.0e-10;

@@ -7,12 +7,15 @@ export const ANT_STRUCT_SIZE = 6;
 
 export function getAgentsArray(parameters: ISimulationParameters): Array<number> {
     const agentsArray = new Array(ANT_STRUCT_SIZE * parameters.agentCount);
+    const colors = [.8,.9,.85];
     for (let i = 0; i < agentsArray.length; i += ANT_STRUCT_SIZE) {
         agentsArray[i] = parameters.width / 2; // X
         agentsArray[i+1] = parameters.height / 2; // Y
         agentsArray[i+2] = i / (6 * parameters.agentCount) * Math.PI * 2; // Angle
-        agentsArray[i+3] = i / (6 * parameters.agentCount); // hue
-        agentsArray[i+4] = Math.random(); // Energy
+        // agentsArray[i+3] = colors[Math.floor(Math.random() * colors.length)]//i / (6 * parameters.agentCount); // hue
+        agentsArray[i+3] = (i / (6 * parameters.agentCount)); // hue
+        // agentsArray[i+3] = Math.random();
+        agentsArray[i+4] = 1;//Math.random(); // Energy
         agentsArray[i+5] = 0;
     }
     return agentsArray;
@@ -84,7 +87,7 @@ export class SimulationPass {
         });
 
         this.uniformBuffer = device.createBuffer({
-            size: 58,
+            size: 40,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         });
     }
@@ -110,6 +113,8 @@ export class SimulationPass {
             this.simulationParameters.steerFactor,
             this.simulationParameters.speed,
             this.simulationParameters.energyCost,
+            this.simulationParameters.hueAffinity,
+
         ])
         this.device.queue.writeBuffer(
             this.uniformBuffer,

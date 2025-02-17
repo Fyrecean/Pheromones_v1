@@ -54,8 +54,12 @@ fn fragment_main(fragData: VertexOut) -> @location(0) vec4f
     // } else {
     //     outColor = mix(black, color2, sample * 2);
     // }
-    let sample = textureSample(textureIn, samplerIn, fragData.uv).xyz;
-    let outColor = hsv2rgb(sample);
-
-    return vec4(outColor, 1);
+    var sample = textureSample(textureIn, samplerIn, fragData.uv);
+    // if (fragData.uv.x > .5) {
+    //     let hsv = rgb2hsv(sample.xyz);
+    //     sample = vec4(hsv2rgb(hsv),1.);
+    // }
+    // let outColor = hsv2rgb(sample);
+    return sample;
+    // return vec4(outColor, 1);
 }

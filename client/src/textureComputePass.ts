@@ -109,7 +109,7 @@ export class TexturePass {
             floats.length
         );
         // Write ints
-        const ints = new Uint32Array([this.simulationParamters.wrap ? 1 : 0]);
+        const ints = new Uint32Array([1]); // Wrap
         this.device.queue.writeBuffer(
             this.uniformBuffer,
             this.kernel.byteLength + floats.byteLength,

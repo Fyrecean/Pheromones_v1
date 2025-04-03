@@ -1,6 +1,7 @@
 import { Camera2D } from "camera";
 import shaderCode from "./shaders/render_environment.wgsl"
 import typesShader from "./shaders/types.wgsl";
+import { ISimulationParameters } from "./simulationConfig";
 
 export class RenderPass {
     device: GPUDevice;
@@ -8,18 +9,23 @@ export class RenderPass {
     pipeline: GPURenderPipeline;
     sampler: GPUSampler;
 
+    simulationParameters: ISimulationParameters;
+
     uniformBuffer: GPUBuffer;
     camera: Camera2D;
 
-    constructor(device: GPUDevice, textureFormat: GPUTextureFormat, camera: Camera2D) {
+    constructor(device: GPUDevice, textureFormat: GPUTextureFormat, camera: Camera2D, simulationParameters: ISimulationParameters) {
         this.device = device;
         this.sampler = device.createSampler({
             minFilter: "linear",
             magFilter: "linear",
         });
+
+        this.simulationParameters = simulationParameters;
+
         this.camera = camera;
         this.uniformBuffer = device.createBuffer({
-            size: this.camera.viewMatrix.byteLength,
+            size: this.camera.viewMatrix.byteLength + 16,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         })
         const renderBindGroupLayout = device.createBindGroupLayout({
@@ -93,6 +99,13 @@ export class RenderPass {
             0,
             this.camera.viewMatrix.length,
         );
+        const uniformInts = new Uint32Array([this.simulationParameters.rainbow ? 1 : 0]);
+        this.device.queue.writeBuffer(this.uniformBuffer,
+            this.camera.viewMatrix.byteLength,
+            uniformInts,
+            0,
+            uniformInts.length,
+        )
 
         // TODO - is recreating the bind group with a texture swap faster than copying texture data back and forth?
         this.bindGroup = this.device.createBindGroup({

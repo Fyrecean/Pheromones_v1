@@ -121,7 +121,7 @@ spare perf buffers:    —`;
 
     const simulationPass = new SimulationPass(device, simulationParameters, pheromoneTextures[0].format, agentsBuffer);
 
-    const renderPass = new RenderPass(device, pheromoneTextures[0].format, camera);
+    const renderPass = new RenderPass(device, pheromoneTextures[0].format, camera, simulationParameters);
 
     let pheromoneIndex = 0;
     frame = () => {

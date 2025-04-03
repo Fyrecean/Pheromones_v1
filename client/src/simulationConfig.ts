@@ -14,6 +14,7 @@ export interface ISimulationParameters {
     sampleDistance: number,
     passiveAttenuation: number,
     gaussianStdDev: number,
+    rainbow: boolean,
 }
 
 
@@ -21,7 +22,6 @@ export let simulationParameters: ISimulationParameters = {
     agentCount: 100000,
     height: 0,
     width: 0,
-
     turnJitter: .6,
     steerFactor: .6,
     speed: .8,
@@ -30,6 +30,7 @@ export let simulationParameters: ISimulationParameters = {
     sampleDistance: 17,
     passiveAttenuation: 0.01,
     gaussianStdDev: .4,
+    rainbow: true,
 }
 
 const defaultParams = structuredClone(simulationParameters);
@@ -183,6 +184,9 @@ document.addEventListener("DOMContentLoaded", () => {
             configFlyout.style.display = "none";
         }
     });
+    addSlider("Ant Count", "agentCount", 1, 1000000, 1,
+        "How many ants there are. Reset Sim to take effect."
+    );
     addSlider("Jitter", "turnJitter", 0, 1.5, .05,
         "How much do ants randomly change direction"
     );
@@ -193,7 +197,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "How many pixels can an ant step"
     );
     addSlider("Energy Cost", "energyCost", 0, .01, .0001, 
-        "How many pixels can an ant step"
+        "Ants have 0 to 1 energy. This cost is subtracted every frame. Ants respawn in the center when they reach 0."
     );
     addSlider("Hue Affinity", "hueAffinity",0, 10, .1, 
         "How much more do ants prefer their own hue of pheromone"
@@ -207,6 +211,7 @@ document.addEventListener("DOMContentLoaded", () => {
     addSlider("Pheromone Fade", "passiveAttenuation", 0.002, .05, .001,
         "Amount by which all pheromones are decreased each frame"
     );
+    addCheckbox("Rainbow", "rainbow", "Whether to display rainbow colors. Unchecking will obscure the effect of Hue Affinity")
     
     document.getElementById("reset").addEventListener("click", reset);
     let pauseButton = document.getElementById("pause");
@@ -267,29 +272,29 @@ function addSlider(name: string, configKey: TypedKeys<ISimulationParameters, num
     }});
 }
 
-// function addCheckbox(name: string, configKey: TypedKeys<ISimulationParameters, boolean>, tooltip: string) {
-//     const label = document.createElement("label");
-//     label.setAttribute("for", name);
-//     label.setAttribute("title", tooltip);
-//     label.innerText = name;
-//     const input = document.createElement("input");
-//     input.setAttribute("id", name);
-//     input.setAttribute("type", "checkbox");
-//     input.checked = simulationParameters[configKey];
+function addCheckbox(name: string, configKey: TypedKeys<ISimulationParameters, boolean>, tooltip: string) {
+    const label = document.createElement("label");
+    label.setAttribute("for", name);
+    label.setAttribute("title", tooltip);
+    label.innerText = name;
+    const input = document.createElement("input");
+    input.setAttribute("id", name);
+    input.setAttribute("type", "checkbox");
+    input.checked = simulationParameters[configKey];
 
-//     const tableRow = document.createElement("tr");
-//     tableRow.append(
-//         document.createElement("td").appendChild(label).parentElement,
-//         document.createElement("td").appendChild(input).parentElement,
-//     );
-//     configTable.appendChild(tableRow);
+    const tableRow = document.createElement("tr");
+    tableRow.append(
+        document.createElement("td").appendChild(label).parentElement,
+        document.createElement("td").appendChild(input).parentElement,
+    );
+    configTable.appendChild(tableRow);
 
-//     const onUpdate = () => {
-//         simulationParameters[configKey] = input.checked;
-//     };
-//     onUpdate();
-//     input.addEventListener("input", onUpdate);
-//     controls.push({key: configKey, updater: (value: boolean) => {
-//         input.checked = value;
-//     }});
-// }
+    const onUpdate = () => {
+        simulationParameters[configKey] = input.checked;
+    };
+    onUpdate();
+    input.addEventListener("input", onUpdate);
+    controls.push({key: configKey, updater: (value: boolean) => {
+        input.checked = value;
+    }});
+}
